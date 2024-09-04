@@ -1,0 +1,2 @@
+domain name: linode.cloudnetworktesting.com
+ip address: ssh root@173.230.155.238
