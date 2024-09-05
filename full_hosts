@@ -1,0 +1,11 @@
+[main]
+linode.cloudnetworktesting.com
+
+[databases]
+db1
+db2
+
+[webservers]
+ws1
+ws2
+ws3
