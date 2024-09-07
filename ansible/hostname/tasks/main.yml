@@ -1,14 +1,17 @@
 - name: set hostname
   ansible.builtin.hostname:
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/hostname_module.html
     name: vps.linode.cloudnetworktesting.com
     use: systemd
 
 - name: localhost
   ansible.builtin.lineinfile:
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/lineinfile_module.html
     path: /etc/hosts
     line: 127.0.0.1 localhost.localdomain localhost
 
 - name: vps.linode.cloudnetworktesitng.com
   ansible.builtin.lineinfile:
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/lineinfile_module.html
     path: /etc/hosts
     line: 173.230.155.238 vps.linode.cloudnetworktesting.com vps

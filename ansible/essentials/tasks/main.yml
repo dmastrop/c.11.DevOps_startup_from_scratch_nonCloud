@@ -1,5 +1,6 @@
 - name: drop-in directory  # resembles https://wiki.archlinux.org/title/Systemd#Drop-in_files
   ansible.builtin.file:
+    # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html#parameter-mode
     path: /etc/systemd/network/05-eth0.network.d/
     state: directory
     owner: root
@@ -8,6 +9,7 @@
 
 - name: copy custom config
   ansible.builtin.copy:
+    # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/copy_module.html
     src: files/01-custom.conf
     dest: /etc/systemd/network/05-eth0.network.d/01-custom.conf
     owner: root
@@ -15,3 +17,5 @@
     mode: '644'
     backup: yes
   notify: restart systemd-networkd  # https://docs.ansible.com/ansible/latest/user_guide/playbooks_handlers.html
+
+- include_tasks: packages.yml
