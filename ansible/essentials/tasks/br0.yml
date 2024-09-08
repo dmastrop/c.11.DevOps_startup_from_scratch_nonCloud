@@ -1,0 +1,24 @@
+# https://wiki.archlinux.org/title/Linux_Containers#Using_a_host_bridge
+# https://wiki.archlinux.org/title/Systemd-networkd#Bridge_interface
+# to create the bridge interace on the VPS we need 2 files br0.netdev and br0.network
+# 
+- name: netdev
+  ansible.builtin.copy:
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/copy_module.html
+  # Copy the file from the files directory on the ansible controller to the VPS under /etc/systemd/network directory
+    src: files/br0.netdev
+    dest: /etc/systemd/network/br0.netdev
+    owner: root
+    group: root
+    mode: '644'
+  notify: restart systemd-networkd
+  # this is a handler to restart system-networkd so that the network config changes take place on the VPS
+
+- name: network
+  ansible.builtin.copy:
+    src: files/br0.network
+    dest: /etc/systemd/network/br0.network
+    owner: root
+    group: root
+    mode: '644'
+  notify: restart systemd-networkd

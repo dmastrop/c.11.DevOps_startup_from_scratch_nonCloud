@@ -19,3 +19,5 @@
   notify: restart systemd-networkd  # https://docs.ansible.com/ansible/latest/user_guide/playbooks_handlers.html
 
 - include_tasks: packages.yml
+- include_tasks: cronie.yml
+- include_tasks: br0.yml

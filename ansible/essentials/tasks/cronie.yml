@@ -1,0 +1,14 @@
+- name: install cronie
+  community.general.pacman:
+  # https://docs.ansible.com/ansible/latest/collections/community/general/pacman_module.html
+    update_cache: yes
+    name:
+      - cronie          # cron implementation
+    state: present
+
+- name: ensure cronie is started and enabled at boot
+  ansible.builtin.systemd:
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#ansible-collections-ansible-builtin-systemd-service-module
+    name: cronie
+    state: started
+    enabled: yes
