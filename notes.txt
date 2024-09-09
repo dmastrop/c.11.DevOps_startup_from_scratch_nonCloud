@@ -1,2 +1,39 @@
 domain name: linode.cloudnetworktesting.com
+
+added domain name and registered with Google cloud DNS and used linode DNS nameservers
+ssh linode.cloudnetworktesting.com
+
+hostname of VPS is vps
+
+FQDN: vps.linode.cloudnetworktesting.com
+
+
+#########
 ip address: ssh root@173.230.155.238
+
+ssh linode.cloudnetworktesting.com from controller
+
+#######
+
+loopback added ip address:
+10.36.7.11
+
+
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet 127.0.0.1/32 scope host lo
+       valid_lft forever preferred_lft forever
+    inet 10.36.7.11/32 scope global lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+
+########
+added bridge network 10.100.100.1/24
+
+
+[Network]
+Address=10.100.100.1/24
+IPMasquerade=ipv4
