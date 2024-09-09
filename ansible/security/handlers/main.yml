@@ -1,0 +1,6 @@
+# these are the notify handlers in the iptables and sshd config tasks
+- name: restart sshd
+  systemd: "name=sshd state=restarted"
+
+- name: restart iptables
+  systemd: "name=iptables state=restarted"

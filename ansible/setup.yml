@@ -2,3 +2,4 @@
   roles:
     - hostname
     - essentials
+    - security
