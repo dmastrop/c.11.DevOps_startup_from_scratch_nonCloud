@@ -3,3 +3,4 @@ environment1
 directory_venv
 tmp_ansible_venv
 directory_pyenv_virtualenv
+notes.txt
