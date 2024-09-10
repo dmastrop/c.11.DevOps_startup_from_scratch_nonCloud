@@ -4,3 +4,5 @@ directory_venv
 tmp_ansible_venv
 directory_pyenv_virtualenv
 notes.txt
+get-certs.sh
+credentials.ini
