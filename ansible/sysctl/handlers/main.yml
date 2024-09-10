@@ -1,0 +1,5 @@
+- name: reload sysctl
+  ansible.builtin.shell: "sysctl --system"
+  # to load new kernel params need to run sysctl --system command
+  # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html
+  # It is almost exactly like the ansible.builtin.command module but runs the command through a shell (/bin/sh) on the remote node.

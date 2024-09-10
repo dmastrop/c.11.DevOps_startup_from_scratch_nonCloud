@@ -1,0 +1,81 @@
+
+PLAY [main] ********************************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [hostname : set hostname] *************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [hostname : localhost] ****************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [hostname : vps.linode.cloudnetworktesitng.com] ***************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : drop-in directory] ******************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : copy custom config] *****************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : include_tasks] **********************************************
+included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/packages.yml for linode.cloudnetworktesting.com
+
+TASK [essentials : install packages] *******************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : ensure plocate-updatedb.timer is started and enabled at boot] ***
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : symlink vi] *************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : scripts directory] ******************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : update pacman mirrors script] *******************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : include_tasks] **********************************************
+included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/cronie.yml for linode.cloudnetworktesting.com
+
+TASK [essentials : install cronie] *********************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : ensure cronie is started and enabled at boot] ***************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : include_tasks] **********************************************
+included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/br0.yml for linode.cloudnetworktesting.com
+
+TASK [essentials : netdev] *****************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : network] ****************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [essentials : include_tasks] **********************************************
+included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/loopback.yml for linode.cloudnetworktesting.com
+
+TASK [essentials : loopback address] *******************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [security : include_tasks] ************************************************
+included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/sshd.yml for linode.cloudnetworktesting.com
+
+TASK [security : sshd_config] **************************************************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [security : include_tasks] ************************************************
+included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/iptables.yml for linode.cloudnetworktesting.com
+
+TASK [security : ensure iptables is started and enabled at boot] ***************
+ok: [linode.cloudnetworktesting.com]
+
+TASK [security : iptables.rules] ***********************************************
+ok: [linode.cloudnetworktesting.com]
+
+PLAY RECAP *********************************************************************
+linode.cloudnetworktesting.com : ok=25   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+

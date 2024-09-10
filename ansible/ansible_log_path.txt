@@ -1,0 +1,134 @@
+2024-09-10 01:12:57,845 p=16976 u=ubuntu n=ansible | PLAY [main] ***********************************************************************************************************************
+2024-09-10 01:12:57,879 p=16976 u=ubuntu n=ansible | TASK [Gathering Facts] ************************************************************************************************************
+2024-09-10 01:13:01,713 p=16976 u=ubuntu n=ansible | [WARNING]: Platform linux on host linode.cloudnetworktesting.com is using the discovered Python interpreter at
+/usr/bin/python3.12, but future installation of another Python interpreter could change the meaning of that path. See
+https://docs.ansible.com/ansible-core/2.17/reference_appendices/interpreter_discovery.html for more information.
+
+2024-09-10 01:13:01,716 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:01,755 p=16976 u=ubuntu n=ansible | TASK [hostname : set hostname] ****************************************************************************************************
+2024-09-10 01:13:04,633 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:04,648 p=16976 u=ubuntu n=ansible | TASK [hostname : localhost] *******************************************************************************************************
+2024-09-10 01:13:06,366 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:06,372 p=16976 u=ubuntu n=ansible | TASK [hostname : vps.linode.cloudnetworktesitng.com] ******************************************************************************
+2024-09-10 01:13:07,942 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:07,956 p=16976 u=ubuntu n=ansible | TASK [essentials : drop-in directory] *********************************************************************************************
+2024-09-10 01:13:09,693 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:09,701 p=16976 u=ubuntu n=ansible | TASK [essentials : copy custom config] ********************************************************************************************
+2024-09-10 01:13:12,536 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:12,542 p=16976 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:13:12,565 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/packages.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:12,571 p=16976 u=ubuntu n=ansible | TASK [essentials : install packages] **********************************************************************************************
+2024-09-10 01:13:17,211 p=16976 u=ubuntu n=ansible | changed: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:17,217 p=16976 u=ubuntu n=ansible | TASK [essentials : ensure plocate-updatedb.timer is started and enabled at boot] **************************************************
+2024-09-10 01:13:19,548 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:19,553 p=16976 u=ubuntu n=ansible | TASK [essentials : symlink vi] ****************************************************************************************************
+2024-09-10 01:13:21,132 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:21,138 p=16976 u=ubuntu n=ansible | TASK [essentials : scripts directory] *********************************************************************************************
+2024-09-10 01:13:22,705 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:22,712 p=16976 u=ubuntu n=ansible | TASK [essentials : update pacman mirrors script] **********************************************************************************
+2024-09-10 01:13:25,393 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:25,399 p=16976 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:13:25,420 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/cronie.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:25,430 p=16976 u=ubuntu n=ansible | TASK [essentials : install cronie] ************************************************************************************************
+2024-09-10 01:13:28,398 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:28,404 p=16976 u=ubuntu n=ansible | TASK [essentials : ensure cronie is started and enabled at boot] ******************************************************************
+2024-09-10 01:13:30,344 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:30,350 p=16976 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:13:30,368 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/br0.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:30,377 p=16976 u=ubuntu n=ansible | TASK [essentials : netdev] ********************************************************************************************************
+2024-09-10 01:13:33,084 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:33,091 p=16976 u=ubuntu n=ansible | TASK [essentials : network] *******************************************************************************************************
+2024-09-10 01:13:35,787 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:35,793 p=16976 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:13:35,812 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/loopback.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:35,821 p=16976 u=ubuntu n=ansible | TASK [essentials : loopback address] **********************************************************************************************
+2024-09-10 01:13:38,549 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:38,560 p=16976 u=ubuntu n=ansible | TASK [security : include_tasks] ***************************************************************************************************
+2024-09-10 01:13:38,579 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/sshd.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:38,584 p=16976 u=ubuntu n=ansible | TASK [security : sshd_config] *****************************************************************************************************
+2024-09-10 01:13:41,301 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:41,307 p=16976 u=ubuntu n=ansible | TASK [security : include_tasks] ***************************************************************************************************
+2024-09-10 01:13:41,325 p=16976 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/iptables.yml for linode.cloudnetworktesting.com
+2024-09-10 01:13:41,333 p=16976 u=ubuntu n=ansible | TASK [security : ensure iptables is started and enabled at boot] ******************************************************************
+2024-09-10 01:13:43,218 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:43,230 p=16976 u=ubuntu n=ansible | TASK [security : iptables.rules] **************************************************************************************************
+2024-09-10 01:13:45,927 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:45,941 p=16976 u=ubuntu n=ansible | TASK [sysctl : 99-sysctl.conf] ****************************************************************************************************
+2024-09-10 01:13:48,626 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:48,637 p=16976 u=ubuntu n=ansible | TASK [certbot : install packages] *************************************************************************************************
+2024-09-10 01:13:51,552 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:51,559 p=16976 u=ubuntu n=ansible | TASK [certbot : certbot] **********************************************************************************************************
+2024-09-10 01:13:56,586 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:56,592 p=16976 u=ubuntu n=ansible | TASK [certbot : ensure certbot-renew.timer is started and enabled at boot] ********************************************************
+2024-09-10 01:13:58,459 p=16976 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:13:58,466 p=16976 u=ubuntu n=ansible | TASK [certbot : run get-certs] ****************************************************************************************************
+2024-09-10 01:14:00,768 p=16976 u=ubuntu n=ansible | changed: [linode.cloudnetworktesting.com]
+2024-09-10 01:14:00,798 p=16976 u=ubuntu n=ansible | PLAY RECAP ************************************************************************************************************************
+2024-09-10 01:14:00,799 p=16976 u=ubuntu n=ansible | linode.cloudnetworktesting.com : ok=30   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+2024-09-10 01:25:49,352 p=18540 u=ubuntu n=ansible | PLAY [main] ***********************************************************************************************************************
+2024-09-10 01:25:49,382 p=18540 u=ubuntu n=ansible | TASK [Gathering Facts] ************************************************************************************************************
+2024-09-10 01:25:53,190 p=18540 u=ubuntu n=ansible | [WARNING]: Platform linux on host linode.cloudnetworktesting.com is using the discovered Python interpreter at
+/usr/bin/python3.12, but future installation of another Python interpreter could change the meaning of that path. See
+https://docs.ansible.com/ansible-core/2.17/reference_appendices/interpreter_discovery.html for more information.
+
+2024-09-10 01:25:53,190 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:25:53,204 p=18540 u=ubuntu n=ansible | TASK [hostname : set hostname] ****************************************************************************************************
+2024-09-10 01:25:55,661 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:25:55,668 p=18540 u=ubuntu n=ansible | TASK [hostname : localhost] *******************************************************************************************************
+2024-09-10 01:25:57,400 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:25:57,406 p=18540 u=ubuntu n=ansible | TASK [hostname : vps.linode.cloudnetworktesitng.com] ******************************************************************************
+2024-09-10 01:25:58,945 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:25:58,960 p=18540 u=ubuntu n=ansible | TASK [essentials : drop-in directory] *********************************************************************************************
+2024-09-10 01:26:00,717 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:00,724 p=18540 u=ubuntu n=ansible | TASK [essentials : copy custom config] ********************************************************************************************
+2024-09-10 01:26:03,549 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:03,556 p=18540 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:26:03,577 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/packages.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:03,583 p=18540 u=ubuntu n=ansible | TASK [essentials : install packages] **********************************************************************************************
+2024-09-10 01:26:07,717 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:07,723 p=18540 u=ubuntu n=ansible | TASK [essentials : ensure plocate-updatedb.timer is started and enabled at boot] **************************************************
+2024-09-10 01:26:10,021 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:10,036 p=18540 u=ubuntu n=ansible | TASK [essentials : symlink vi] ****************************************************************************************************
+2024-09-10 01:26:11,629 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:11,634 p=18540 u=ubuntu n=ansible | TASK [essentials : scripts directory] *********************************************************************************************
+2024-09-10 01:26:13,196 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:13,204 p=18540 u=ubuntu n=ansible | TASK [essentials : update pacman mirrors script] **********************************************************************************
+2024-09-10 01:26:15,848 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:15,853 p=18540 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:26:15,872 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/cronie.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:15,879 p=18540 u=ubuntu n=ansible | TASK [essentials : install cronie] ************************************************************************************************
+2024-09-10 01:26:18,777 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:18,784 p=18540 u=ubuntu n=ansible | TASK [essentials : ensure cronie is started and enabled at boot] ******************************************************************
+2024-09-10 01:26:20,747 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:20,754 p=18540 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:26:20,777 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/br0.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:20,785 p=18540 u=ubuntu n=ansible | TASK [essentials : netdev] ********************************************************************************************************
+2024-09-10 01:26:23,425 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:23,431 p=18540 u=ubuntu n=ansible | TASK [essentials : network] *******************************************************************************************************
+2024-09-10 01:26:26,089 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:26,094 p=18540 u=ubuntu n=ansible | TASK [essentials : include_tasks] *************************************************************************************************
+2024-09-10 01:26:26,117 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/essentials/tasks/loopback.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:26,135 p=18540 u=ubuntu n=ansible | TASK [essentials : loopback address] **********************************************************************************************
+2024-09-10 01:26:28,777 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:28,787 p=18540 u=ubuntu n=ansible | TASK [security : include_tasks] ***************************************************************************************************
+2024-09-10 01:26:28,810 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/sshd.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:28,815 p=18540 u=ubuntu n=ansible | TASK [security : sshd_config] *****************************************************************************************************
+2024-09-10 01:26:31,479 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:31,485 p=18540 u=ubuntu n=ansible | TASK [security : include_tasks] ***************************************************************************************************
+2024-09-10 01:26:31,502 p=18540 u=ubuntu n=ansible | included: /home/ubuntu/course11_devops_startup/ansible/security/tasks/iptables.yml for linode.cloudnetworktesting.com
+2024-09-10 01:26:31,509 p=18540 u=ubuntu n=ansible | TASK [security : ensure iptables is started and enabled at boot] ******************************************************************
+2024-09-10 01:26:33,270 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:33,276 p=18540 u=ubuntu n=ansible | TASK [security : iptables.rules] **************************************************************************************************
+2024-09-10 01:26:35,932 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:35,948 p=18540 u=ubuntu n=ansible | TASK [sysctl : 99-sysctl.conf] ****************************************************************************************************
+2024-09-10 01:26:38,617 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:38,627 p=18540 u=ubuntu n=ansible | TASK [certbot : install packages] *************************************************************************************************
+2024-09-10 01:26:41,535 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:41,541 p=18540 u=ubuntu n=ansible | TASK [certbot : certbot] **********************************************************************************************************
+2024-09-10 01:26:46,530 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:46,537 p=18540 u=ubuntu n=ansible | TASK [certbot : ensure certbot-renew.timer is started and enabled at boot] ********************************************************
+2024-09-10 01:26:48,357 p=18540 u=ubuntu n=ansible | ok: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:48,363 p=18540 u=ubuntu n=ansible | TASK [certbot : run get-certs] ****************************************************************************************************
+2024-09-10 01:26:50,539 p=18540 u=ubuntu n=ansible | changed: [linode.cloudnetworktesting.com]
+2024-09-10 01:26:50,563 p=18540 u=ubuntu n=ansible | PLAY RECAP ************************************************************************************************************************
+2024-09-10 01:26:50,563 p=18540 u=ubuntu n=ansible | linode.cloudnetworktesting.com : ok=30   changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   

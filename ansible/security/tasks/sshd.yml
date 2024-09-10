@@ -1,9 +1,23 @@
 - name: sshd_config
   ansible.builtin.copy:
-    src: sshd_config
+    src: files/sshd_config
     dest: /etc/ssh/sshd_config
     owner: root
     group: root
     mode: '644'
     backup: yes
   notify: restart sshd
+
+# NOTES on ansible.builtin.copy
+# For src ansible searches for the file in files directory by default. There is a complete algorithm that ansible uses to find the files file.
+# So src: files/filename will work as well as src: filename
+# Here's my test: in "src" I specified just the file name: "delme".
+# I've put it in "files/delme" and it was the first thing Ansible tried when I ran the playbook and looked at the output.
+# Then I renamed "files" to "myfiles", so "myfiles/delme" and it tried to find it in:
+# - my_role/files/delme
+# - my_role/delme
+# - my_role/tasks/files/delme
+# - my_role/tasks/delme
+# - files/delme (this is one directory up from the role itself, like "global" files)
+# - delme (also on directory up from the role itself)
+# Because it didn't find it, It then ends up copying the whole directory which is not what one wants.

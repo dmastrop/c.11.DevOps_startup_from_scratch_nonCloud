@@ -1,0 +1,53 @@
+- name: install packages
+  # install certbot with pacman via ansible task
+  # certbot-dns-linode is required for certbot to interact with linode DNS that is administering my domain.
+  community.general.pacman:
+    update_cache: yes
+    name:
+      - certbot
+      - certbot-dns-linode
+    state: present
+
+- name: certbot
+  ansible.builtin.copy:
+    src: certbot
+    # copy the entire certbot sub-directory over to the VPS server. This has the shell script and API linode credentials 
+    dest: /root/
+    owner: root
+    group: root
+    mode: "700"
+
+### You can skip these two.
+### `certbot-renew.service` and `certbot-renew.timer` now come installed with the `certbot` package.
+### You still need to start and enable `certbot-renew.timer` though! (see further below)
+### The former services were called certbot.service and certbot.timer
+# - name: service
+#   ansible.builtin.copy:
+#     src: files/certbot-renew.service
+#     dest: /etc/systemd/system/certbot-renew.service
+#     owner: root
+#     group: root
+#     mode: '644'
+#
+# - name: timer
+#   ansible.builtin.copy:
+#     src: files/certbot-renew.timer
+#     dest: /etc/systemd/system/certbot-renew.timer
+#     owner: root
+#     group: root
+#     mode: '644'
+
+- name: ensure certbot-renew.timer is started and enabled at boot
+  # This is still required even though the services, as noted above, are installed with certbot now.
+  ansible.builtin.systemd:
+    name: certbot-renew.timer
+    state: started
+    enabled: yes
+
+- name: run get-certs
+  # this actually runs get-certs.sh which runs certbot to send the TLS request for my domain and email address to Let's encrypt
+  # via ACME protocol
+  # The request will prompt Let's encrypt to challenge certbot as owner of the domain that I am using (linode domains) 
+  # certbot will have to create a DNS txt record for the challenge domain using the wildcard with a long prefix as the wildcard
+  # certbot needs to create the record and once this is done Let's encrypt will return the wild card TLS cert for my domain
+  command: "/root/certbot/get-certs.sh"
