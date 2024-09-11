@@ -1,3 +1,15 @@
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+# masquerade is required for the wireguard traffic to go out to the public network. Similar to what was done for bridge network 
+# in br0.network file
+# note that this is a *nat so the address will be nat'ed to the VPS public ip address for outbound traffic.
+-A POSTROUTING -s 10.100.94.0/24 -o eth0 -j MASQUERADE
+COMMIT
+
+
 *filter
 :INPUT DROP [0:0]
 :FORWARD ACCEPT [0:0]
@@ -8,6 +20,15 @@
 # If you don't have static IP, use this
 # to access port 44422
 -A INPUT -i eth0 -p tcp --dport 44422 -j ACCEPT
+# wireguard traffic protocol UDP port 9473
+-A INPUT -i eth0 -p udp --dport 9473 -j ACCEPT
+
+
+# WireGuard clients allow traffic from this source ip
+-A INPUT -s 10.100.94.11/32 -j ACCEPT
+-A INPUT -s 10.100.94.12/32 -j ACCEPT
+
+
 -A INPUT -i lo -j ACCEPT
 -A INPUT -p icmp -j ACCEPT
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
