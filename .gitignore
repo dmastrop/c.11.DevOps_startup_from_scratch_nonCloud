@@ -7,3 +7,5 @@ notes.txt
 get-certs.sh
 credentials.ini
 .DS_Store
+ansible_debug*
+ansible_log_path.txt
