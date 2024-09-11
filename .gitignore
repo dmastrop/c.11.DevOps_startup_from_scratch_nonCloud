@@ -6,3 +6,4 @@ directory_pyenv_virtualenv
 notes.txt
 get-certs.sh
 credentials.ini
+.DS_Store
