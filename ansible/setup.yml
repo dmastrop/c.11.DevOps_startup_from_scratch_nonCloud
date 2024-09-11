@@ -5,3 +5,4 @@
     - security
     - sysctl
     - certbot
+    - wireguard

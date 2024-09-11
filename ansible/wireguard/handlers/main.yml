@@ -1,0 +1,2 @@
+- name: restart wg-linode
+  systemd: "name=wg-quick@wg-linode.service state=restarted"

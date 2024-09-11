@@ -1,0 +1,21 @@
+- name: install packages
+  community.general.pacman:
+    update_cache: yes
+    name: wireguard-tools
+    state: present
+
+- name: wg-linode
+  ansible.builtin.copy:
+  # copy over the wg-linode.conf file to the /etc/wireguard directory on the wireguard server running on the VPS
+    src: keys_and_credentials/wg-linode.conf
+    dest: /etc/wireguard/wg-linode.conf
+    owner: root
+    group: root
+    mode: '600'
+  notify: restart wg-linode
+
+- name: ensure wg-quick@wg-linode.service is started and enabled at boot
+  ansible.builtin.systemd:
+    name: wg-quick@wg-linode.service
+    state: started
+    enabled: yes
