@@ -4,3 +4,7 @@
 
 - name: restart iptables
   systemd: "name=iptables state=restarted"
+
+- name: restart docker
+  systemd: "name=docker state=restarted"
+# see extensive notes on why we need to add the docker restart handler in the security/tasks/iptables.yml file. 
