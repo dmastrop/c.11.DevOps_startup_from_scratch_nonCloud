@@ -13,9 +13,18 @@
     group: root
     mode: '644'
     backup: yes
-  notify: restart iptables
+  #notify: restart iptables
+  notify: 
+    - restart iptables
+    - restart docker
+# NOTES on notify list of restarting iptables and then docker:
+# Problem is wherever we run ansible-playbook the security that configures the iptables has no knowledge of the docker rules (see /etc/iptables/iptables.rules)
+# So every time the ansible-playbook security role is run the docker container rules will be wiped out and docker containers will be unreachable.
+# to solve this add another handler to restart docker daemon and call it from the security iptables task
+# To solve this issue have to restart docker daemon each time the security iptables ansible role is run. This will reload all the DOCKER rules into the iptables -vnL and iptables -t nat -vnL tables
+# NOTE restart docker service AFTER restarting iptables not before
 
-# NOTES on ansible.builtin.copy
+# NOTES on ansible.builtin.copy:
 # For src ansible searches for the file in files directory by default. There is a complete algorithm that ansible uses to find the files file.
 # So src: files/filename will work as well as src: filename
 # Here's my test: in "src" I specified just the file name: "delme".

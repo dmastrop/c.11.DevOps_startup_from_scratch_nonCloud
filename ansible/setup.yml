@@ -6,3 +6,4 @@
     - sysctl
     - certbot
     - wireguard
+    - docker
