@@ -1,0 +1,92 @@
+- name: check if mariadb is initialized   
+  # check if the initalized file at bottom exists and then register it to a variable.
+  # If the file is present then register below is true if the file is not present then register below will be false
+  # This way we can add a condtion to each module below that we do not want to run if the db is already intialized.
+  stat: path=/root/mariadb_initialized_true
+  ignore_errors: true
+  register: mariadb_initialized_true
+
+- name: install mariadb
+  # python-pymsql is required so that ansible can interact with mariadb
+  # mariadb is a fork of mysql and the commands are interchangeable
+  # NOTE in future mariadb decprecated mysql command 
+  # In this case use mariadb or you can create a symlink mysql ->mariadb. Use the vi -> vim as a template.
+  community.general.pacman:
+    update_cache: yes
+    name:
+      - mariadb
+      - python-pymysql
+    state: present
+
+- name: initialize mariadb
+  # mariadb has to be initialzed after installation
+  ansible.builtin.shell: "mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql"
+  when: mariadb_initialized_true.stat.exists == false
+
+- name: ensure mariadb is started and enabled at boot
+  ansible.builtin.systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: set root user password
+  community.mysql.mysql_user:
+    login_user: root
+    login_unix_socket: "/run/mysqld/mysqld.sock"
+    name: root
+    password: "{{ mariadb_root_password }}"
+    # the above is a placeholder
+    host_all: yes
+    state: present
+  no_log: true
+  # logs are disabled during this module 
+  when: mariadb_initialized_true.stat.exists == false
+
+- name: removes anonymous user account
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: ""
+    host_all: yes
+    state: absent
+    login_unix_socket: "/run/mysqld/mysqld.sock"
+  no_log: true
+  when: mariadb_initialized_true.stat.exists == false
+
+- name: set up databases
+  include_tasks: databases.yml
+
+- name: set up users
+  include_tasks: users.yml
+
+- name: backup script
+  # copy over the backup script and chmod 700 so that it can be executed
+  ansible.builtin.copy:
+    src: files/mariadb-dump-all-databases.sh
+    dest: /root/scripts/mariadb-dump-all-databases.sh
+    owner: root
+    group: root
+    mode: '700'
+
+- name: add backup to crontab
+  # this will run the script above for backing up db each night
+  ansible.builtin.cron:
+    name: mariadb dump all databases
+    minute: "01"
+    hour: "3"
+    user: root
+    job: "/root/scripts/mariadb-dump-all-databases.sh > /dev/null 2>&1"
+
+- name: create mariadb_initialized_true
+  ansible.builtin.file:
+    path: /root/mariadb_initialized_true
+    # this is a file. If this is created it is "true" and will be used in first module above,  and registered to variable mariadb_intialized_true
+    state: touch
+  when: mariadb_initialized_true.stat.exists == false
+
+- name: set immutable attribute
+  ansible.builtin.file:
+    path: /root/mariadb_initialized_true
+    attributes: i
+    # this is the immutable flag.  This prevents editing or removing the file prior to the flag being removed.
+  when: mariadb_initialized_true.stat.exists == false

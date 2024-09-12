@@ -1,0 +1,22 @@
+- name: copy DDL for backups
+  # first copy over the DDL for backups to /tmp/backups.sql on the VPS.
+  # This is the data definition language to create modify and maintain MySql databases
+  # here the backups.sql is a definition file to create a table on how to do the backups (start_time,
+  # end_time, target, date etc.....)
+  ansible.builtin.copy:
+    src: files/backups.sql
+    dest: /tmp/backups.sql
+    owner: root
+    group: root
+    mode: '644'
+
+- name: create databases
+  # import the DDL and create the databases
+  community.mysql.mysql_db:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name:
+      - backups
+    state: import
+    target: /tmp/backups.sql
+  no_log: true

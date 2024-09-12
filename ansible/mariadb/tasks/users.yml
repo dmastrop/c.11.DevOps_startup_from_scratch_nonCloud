@@ -1,0 +1,24 @@
+- name: check for database user 'backup_script@localhost'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    # this is the username backup_script and password for this user  
+    host: "localhost"
+    priv: 'backups.*:ALL'
+    # has all acccess to the backups database  
+    state: present
+  no_log: true
+
+- name: check for database user 'backup_script@10.100.94.0/24'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "10.100.94.%"
+    # this is the wireguard subnet so that this user can connect from the laptop    
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
