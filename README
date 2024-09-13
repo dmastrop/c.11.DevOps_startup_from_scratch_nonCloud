@@ -110,7 +110,10 @@ Traeik sees packet sourced from private IP client wireguard address. It will che
 
 ## certbot, ACME protocol, wildcard TLS certs:
 
-Certbot will be used for non-HTTP services like iRedMail and Zulip.  Certbot can be used to generate wildcard certs for my domain and this makes secure communication with these types of services and servers more practical. Traefik will not be used to terminate the TLS for these servcies and servers.
+Certbot will be used for non-HTTP services like iRedMail and Zulip.  Certbot can be used to generate wildcard certs for my domain and this makes secure communication with these types of services and servers more practical. Traefik will not be used to terminate the TLS for these servcies and servers.  
+
+Certbot is an ACME client and Let' Encrypt will challenge it with a long string and certbot will be able to respond by creating the DNS entry for the domain because it will be given access to do.
+To update Linode DNS via certbot we will need Linode’s personal access token so certbot has access to Linode DNS settings and configuration to make the change and answer the challenge from Let's Encrypt.
 
 
 ## Mariadb:
