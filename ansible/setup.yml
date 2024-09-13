@@ -7,3 +7,4 @@
     - certbot
     - wireguard
     - docker
+    - mariadb
