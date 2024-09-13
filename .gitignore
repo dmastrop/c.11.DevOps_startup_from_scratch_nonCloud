@@ -12,4 +12,4 @@ ansible-debug2.txt
 ansible-debug3.txt
 ansible_log_path.txt
 .vault_password
-/home/ubuntu/course11_devops_startup/ansible/mariadb/defaults/main.yml
+/home/ubuntu/course11_devops_startup/ansible/mariadb/defaults/
