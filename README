@@ -6,9 +6,15 @@ Ownership of a domain. Mine is on Google Cloud DNS and NS will be delegated to l
 
 Linode VPS will be configured with a storage volume as well.
 
+
+## Ansible:
+
 Primary tool for provisioning the apps onto the linode VPS will be ansible (ansible-playbook will have respective roles for the various apps and services added to the setup.yml in the root. See github repo)
 
 I will be running the ansible client from an EC2 ubunut controller. Mac as well would be fine, but i prefer the controller as it has many other devops tools that may be required. It is fully AWS configured as well but we will not be using and AWS, GCP or Azure for this project
+
+
+## Running virtual environment on the EC2 controller:
 
 KEY NOTE: run all of the ansible from a virtual environment.   I will be using venv. Set up the python env in the terminal that will run the venv prior to creating and running the venv.  The venv will inherit the python version which is critical for the ansible to work with the latest Archlinux VPS on linode. 
 The ansible matrix is located here:
@@ -56,26 +62,26 @@ Configuring the network bride interface on the VPS that will be used for the LXC
 
 Configuring the loopback interace on the VPS that will be used for docker container to host VPS network communication and some other things 
 
-## Basic VPS security (firewall):
+## Basic VPS security (iptables firewall):
 
 iptables are used to lock down the VPS to SSH and some other stuff as required as the applications and services and servers are added.  SSH is running on a proprietary port number to further mitigate attacks.  9473 is addded for the wireguard VPN tunnel (see below) which is required to run secure client to server communication to native services and servers like mariadb that do not support native encryption. Wireguard will use private ip addresses to communcate with the WireGuard server on the VPS inside the tunnel. These private ip addresses can then be used on the iptables and thus are allowed through to the VPS server. This is important.
 Note that the nat rules in iptables will be added dynamically for docker containers that are brought up on the VPS in accordance with the private address space on the VPS (for docker outbound connections, i.e. MASQUERADE and docker inbound connections based upon the docker assigned ip address)
 
 Kernel params on the Archlinux require tweaking for the ip forwarding for docker containers to use the aforementioned loopback address for docker container to host network communicatiion.
 
-## NOTE on LXC linux containers vs. docker containers usage.
+## NOTE on LXC linux containers vs. docker containers usage:
 
 The docker containers will be used for mostly HTTP/HTTPS (nginx) stuff like hosting the gitlab whereas the LXC linux containers will be used for non-HTTP services like iRedMail and Zulip (collaboration tool similar to Slack for notifcations, for example of pipeline results)
 LXC linux conatiners will also run HTTP as well (nginx) if the application reqiures full fledged linux file system for installation.
 
 
-## Wireguard security and Traefik
+## Wireguard security and Traefik:
 
 Wireguard plays a critical role in the security as noted above.  Wireguard server on the VPS will be run in conjunction with Traefik for traffic steering to the backend docker containers (and HTTP LXC containers running HTTP/HTTPS services.  Encryption  (HTTPS) will run to the Traefik middleware and this middlewhere will whitelist the private ip address wireguard clients (Windows and iPhone for me; some using Mac) and then run the native HTTP to the docker containers or LXC containers. There is no need for backend encryption at this time.
 Traefik is an HTTPS reverse proxy with HTTP on the backend to the containers. It is a TLS termination point. The containers that it will steer traffic to (docker and LXC linux containers) will be running nginx.
 Traefik has an ACME client built into it so the Let's Encrypt TLS certificates can be generated as needed.
 
-## Wireguard VPN packet flow design
+## Wireguard VPN packet flow design, example:
 
 VPS Wireguard server tunnel endpoint will have a private ip address
 Wireguard clients will have private ip addresses on this same network
@@ -116,7 +122,7 @@ Mariadb is installed now and running on the linode VPS server.  Running mariadb 
 
 
 
-## Othere servcers, apps and services required to get the DevOps infra up and running:
+## Othere servers, apps and services required to get the DevOps infra up and running:
 
 These include:
 
