@@ -1,0 +1,148 @@
+# Tools and process used in building this infrastructure include the following:
+
+Base server: VPS server (linode) running latest Archlinux
+
+Ownership of a domain. Mine is on Google Cloud DNS and NS will be delegated to linode domains so that it can be used for this project (similar to Route 53)
+
+Linode VPS will be configured with a storage volume as well.
+
+Primary tool for provisioning the apps onto the linode VPS will be ansible (ansible-playbook will have respective roles for the various apps and services added to the setup.yml in the root. See github repo)
+
+I will be running the ansible client from an EC2 ubunut controller. Mac as well would be fine, but i prefer the controller as it has many other devops tools that may be required. It is fully AWS configured as well but we will not be using and AWS, GCP or Azure for this project
+
+KEY NOTE: run all of the ansible from a virtual environment.   I will be using venv. Set up the python env in the terminal that will run the venv prior to creating and running the venv.  The venv will inherit the python version which is critical for the ansible to work with the latest Archlinux VPS on linode. 
+The ansible matrix is located here:
+https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
+
+For the latest Archlinux: it is running python 3.12.5. This is the ansible target
+One possible ansible client/python version to run on the venv on the EC2 controller is ansibile 10.3.0/core 2.17.3 with python 3.12.5 running in the venv.
+
+To install the proper ansible version and python version in the venv use the following process. I prefer this over using penv and virtualenv which was causing issues with python3 and python versiions in the virtualenv not being aligned.
+
+## Setting up the venv:
+
+on EC2 controller (ansible client):
+mkdir tmp_ansible && cd $_
+pyenv install -l
+pyenv install 3.12.5
+pyenv shell 3.12.5
+pyenv local 3.12.5
+python -V should show 3.12.5 in this terminal
+
+python -m venv latestenv
+source latestenv/bin/activate
+which python should point to venv path
+which pip should point to venv path
+python -V should state 3.12.5
+pip install ansible==10.3.0 OR just pip install ansible <<< it will get latest which is 10.3.0
+pip freeze should show same as you have
+
+This ansible version and python version runs very well with latest Archlinux linode VPS (python version is 3.12.5 as well)
+
+There are other combinations that will work in the venv but the above is ideal since it is the latest ansible version GA.
+
+
+## ansible playbook files:
+
+The ansible playbook and the roles as indicated in setup.yml are included in the github repository.
+There are some files that have been intentially gitignored because that are clear text passwords or keys.  Also ansible encrypted password files (ansible-vault was used) are also not included in this githup repo. The complete files and folders are on the EC2 contoller.
+
+## Ansible essentials:
+this includes provioning the base linux packages on the Archlinux VPS
+
+installing cronie for the cron jobs that will be used throughout
+
+Configuring the network bride interface on the VPS that will be used for the LXC linux container communication with the host VPS
+
+Configuring the loopback interace on the VPS that will be used for docker container to host VPS network communication and some other things 
+
+## Basic VPS security (firewall):
+
+iptables are used to lock down the VPS to SSH and some other stuff as required as the applications and services and servers are added.  SSH is running on a proprietary port number to further mitigate attacks.  9473 is addded for the wireguard VPN tunnel (see below) which is required to run secure client to server communication to native services and servers like mariadb that do not support native encryption. Wireguard will use private ip addresses to communcate with the WireGuard server on the VPS inside the tunnel. These private ip addresses can then be used on the iptables and thus are allowed through to the VPS server. This is important.
+Note that the nat rules in iptables will be added dynamically for docker containers that are brought up on the VPS in accordance with the private address space on the VPS (for docker outbound connections, i.e. MASQUERADE and docker inbound connections based upon the docker assigned ip address)
+
+Kernel params on the Archlinux require tweaking for the ip forwarding for docker containers to use the aforementioned loopback address for docker container to host network communicatiion.
+
+## NOTE on LXC linux containers vs. docker containers usage.
+
+The docker containers will be used for mostly HTTP/HTTPS (nginx) stuff like hosting the gitlab whereas the LXC linux containers will be used for non-HTTP services like iRedMail and Zulip (collaboration tool similar to Slack for notifcations, for example of pipeline results)
+LXC linux conatiners will also run HTTP as well (nginx) if the application reqiures full fledged linux file system for installation.
+
+
+## Wireguard security and Traefik
+
+Wireguard plays a critical role in the security as noted above.  Wireguard server on the VPS will be run in conjunction with Traefik for traffic steering to the backend docker containers (and HTTP LXC containers running HTTP/HTTPS services.  Encryption  (HTTPS) will run to the Traefik middleware and this middlewhere will whitelist the private ip address wireguard clients (Windows and iPhone for me; some using Mac) and then run the native HTTP to the docker containers or LXC containers. There is no need for backend encryption at this time.
+Traefik is an HTTPS reverse proxy with HTTP on the backend to the containers. It is a TLS termination point. The containers that it will steer traffic to (docker and LXC linux containers) will be running nginx.
+Traefik has an ACME client built into it so the Let's Encrypt TLS certificates can be generated as needed.
+
+## Wireguard VPN packet flow design
+
+VPS Wireguard server tunnel endpoint will have a private ip address
+Wireguard clients will have private ip addresses on this same network
+Public VPS linode server adddress is the public Wireguard VPN endpoint
+The Public client tunnel endpoint will be the Comcast router public IP address of my home network
+iptables on the VPS needs to have explicit rules added for the private ip addresses of the clients as source allow all. The tunnel is shaved off and then iptables kicks in, so iptables will see the private client ip addresses and these need to be allowed accordingly.
+
+Example traffic flow from Wireguard client to gitlab docker container service:
+
+Example Gitlab will be running in a native docker container (not LXC that is for linux containers)
+Traefik will be the endpoint of the TLS to the backend docker containers (HTTP and HTTPS)
+Traefik will have a whitelist middleware to allow only certain ip addresses to access gitlab web site.  For this example 10.100.94.11 and 10.100.94.12  VPN clients
+DNS will be configured for gitlab.linode.cloudnetworktesting.com
+This will be the public ip address of the VPS. In my case 173.230.155.238
+On the PC will set up a wireguard rule that for gitlab.linode.cloudnetworktesting.com will use the VPN tunnel.
+
+The process flow is gitlab.linode.*****cloudnetworktesitng*****.com (my dowmain) in the PC browser
+It resolves to the ip of the VPS 
+The PC network configuration with rule for VPN will use the wireguard tunnel for this gitlab.linode.*********.com
+Once tunneled and then deencapsulated by the Wireguard server on the VPS (linode) the packet will be forwarded to the HTTPS reverse proxy, traefik, to terminate the HTTPS connection and send the native HTTP to the backend Gitlab that is running on the docker container on the VPS (docker containers will use the loopback interface, not the bridge. The bridge is for native linux containers running on LXC)
+
+Traefik is used for all HTTP/HTTPS communication. Non-HTTP will use certbot certificate wildcard.
+
+Traeik sees packet sourced from private IP client wireguard address. It will check the ip whitelist middleware for that domain, sees the source ip is present and lets the traffic through to the docker container running gitlab.
+
+
+## certbot, ACME protocol, wildcard TLS certs:
+
+Certbot will be used for non-HTTP services like iRedMail and Zulip.  Certbot can be used to generate wildcard certs for my domain and this makes secure communication with these types of services and servers more practical. Traefik will not be used to terminate the TLS for these servcies and servers.
+
+
+## Mariadb:
+
+Mariadb is installed now and running on the linode VPS server.  Running mariadb from wireguard clients is the way to do this. Do not run mariadb from non-Wireguard client like EC2 controller because the mariadb server on the VPS does not support native TLS by default.  For security I am using ansible vault for the mariadb root password and database user password so that ansible can be used to configure this server (automated)
+
+## LXC and Linux containers:
+
+
+
+
+## Othere servcers, apps and services required to get the DevOps infra up and running:
+
+These include:
+
+iRedMail
+Zulip collaboration tool
+Traefik as mentioned above
+Pi-Hole for DNS
+Nextcloud
+checkmk
+Borg and Borgmatic
+Gitlab and Gitlab runner
+
+These are added below in terms of the infrastructre design and pipeline architecture.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
