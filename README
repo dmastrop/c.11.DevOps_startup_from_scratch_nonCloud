@@ -119,7 +119,9 @@ Mariadb is installed now and running on the linode VPS server.  Running mariadb 
 
 ## LXC and Linux containers:
 
-
+As stated above some servers and applications like iRedMail and Zulip will need to be installed and run on LXC linux containers rather than docker containers. Although there are solutions now with docker containers, the native full file system linux available in LXC linux containers will make installation of these servers and running these servers more practical.
+We can use certbot wildcard TLS certs to securitize the communication with remote hosts.
+Provisioning the LXC containers will be done via ansible (as are all the other services and servers) via an LXC configuration file.
 
 
 ## Othere servers, apps and services required to get the DevOps infra up and running:
