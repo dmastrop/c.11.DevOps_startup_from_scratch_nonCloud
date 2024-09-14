@@ -120,6 +120,8 @@ To update Linode DNS via certbot we will need Linode’s personal access token s
 
 Mariadb is installed now and running on the linode VPS server.  Running mariadb from wireguard clients is the way to do this. Do not run mariadb from non-Wireguard client like EC2 controller because the mariadb server on the VPS does not support native TLS by default.  For security I am using ansible vault for the mariadb root password and database user password so that ansible can be used to configure this server (automated)
 
+Mariadb will be used by backup-checker to do the backups on a cronjob.
+
 ## LXC and Linux containers:
 
 As stated above some servers and applications like iRedMail and Zulip will need to be installed and run on LXC linux containers rather than docker containers. Although there are solutions now with docker containers, the native full file system linux available in LXC linux containers will make installation of these servers and running these servers more practical.
@@ -127,7 +129,12 @@ We can use certbot wildcard TLS certs to securitize the communication with remot
 Provisioning the LXC containers will be done via ansible (as are all the other services and servers) via an LXC configuration file.
 
 
-## Othere servers, apps and services required to get the DevOps infra up and running:
+
+## This completes the basic infrastructure setup
+
+
+
+## Other servers, apps and services required to get the DevOps infra up and running (these will be used by end users):
 
 These include:
 
@@ -139,6 +146,7 @@ Nextcloud
 checkmk
 Borg and Borgmatic
 Gitlab and Gitlab runner
+Python backup-checker
 
 These are added below in terms of the infrastructre design and pipeline architecture.
 
