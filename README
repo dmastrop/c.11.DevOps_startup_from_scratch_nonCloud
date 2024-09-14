@@ -6,6 +6,8 @@ Ownership of a domain. Mine is on Google Cloud DNS and NS will be delegated to l
 
 Linode VPS will be configured with a storage volume as well.
 
+For network details etc. see notes.txt file on EC2 controller
+
 
 ## git repository architecture
 
@@ -85,6 +87,9 @@ The docker containers will be used for mostly HTTP/HTTPS (nginx) stuff like host
 LXC linux conatiners will also run HTTP as well (nginx) if the application reqiures full fledged linux file system for installation.
 
 
+
+
+
 ## Wireguard security and Traefik:
 
 Wireguard plays a critical role in the security as noted above.  Wireguard server on the VPS will be run in conjunction with Traefik for traffic steering to the backend docker containers (and HTTP LXC containers running HTTP/HTTPS services.  Encryption  (HTTPS) will run to the Traefik middleware and this middlewhere will whitelist the private ip address wireguard clients (Windows and iPhone for me; some using Mac) and then run the native HTTP to the docker containers or LXC containers. There is no need for backend encryption at this time.
@@ -132,16 +137,25 @@ Mariadb is installed now and running on the linode VPS server.  Running mariadb 
 
 Mariadb will be used by backup-checker to do the backups on a cronjob.
 
+For details on commands, networking, etc, see notes.txt
+
+
+
+
 ## LXC and Linux containers:
 
 As stated above some servers and applications like iRedMail and Zulip will need to be installed and run on LXC linux containers rather than docker containers. Although there are solutions now with docker containers, the native full file system linux available in LXC linux containers will make installation of these servers and running these servers more practical.
 We can use certbot wildcard TLS certs to securitize the communication with remote hosts.
-Provisioning the LXC containers will be done via ansible (as are all the other services and servers) via an LXC configuration file.
+Provisioning the LXC containers will be done via ansible (as are all the other services and servers) via an LXC configuration file. The ansible role is called lxc in the setup.yml
+
+For network details see notes.txt on the EC2 controller.
 
 
 
 ## This completes the basic infrastructure setup
 
+
+## For SSH network details and configuration and files see notes.txt
 
 
 ## Other servers, apps and services required to get the DevOps infra up and running (these will be used by end users):
@@ -158,10 +172,10 @@ Borg and Borgmatic
 Gitlab and Gitlab runner
 Python backup-checker
 
-These are added below in terms of the infrastructre design and pipeline architecture.
+Each of these are cited below in terms of the infrastructre design and pipeline architecture.
 
 
-
+## iRedMail:
 
 
 
