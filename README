@@ -7,6 +7,16 @@ Ownership of a domain. Mine is on Google Cloud DNS and NS will be delegated to l
 Linode VPS will be configured with a storage volume as well.
 
 
+## git repository architecture
+
+Use the local VSCode on Mac as local repo (this does not have security senstive files as it is a pull from github)
+
+Github repo (this does not have security sensitive files)
+
+EC2 controller. Running ansible-playbook and venv from here to provision the VPS. This has the full repository source code including sensitive files and folders.
+
+Use EC2 controller only, to provision the VPS. Once changes are tested push to github and then pull the changes to local VSCode on mac for local record keeping.
+
 ## Ansible:
 
 Primary tool for provisioning the apps onto the linode VPS will be ansible (ansible-playbook will have respective roles for the various apps and services added to the setup.yml in the root. See github repo)
