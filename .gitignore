@@ -14,3 +14,4 @@ ansible_log_path.txt
 .vault_password
 /ansible/mariadb/defaults/
 .env-lxc-backups
+notes_local_VSCode.txt
