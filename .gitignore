@@ -13,3 +13,4 @@ ansible-debug3.txt
 ansible_log_path.txt
 .vault_password
 /ansible/mariadb/defaults/
+.env-lxc-backups
