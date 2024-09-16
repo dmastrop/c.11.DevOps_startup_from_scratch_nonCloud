@@ -145,10 +145,16 @@ For details on commands, networking, etc, see notes.txt
 ## LXC and Linux containers:
 
 As stated above some servers and applications like iRedMail and Zulip will need to be installed and run on LXC linux containers rather than docker containers. Although there are solutions now with docker containers, the native full file system linux available in LXC linux containers will make installation of these servers and running these servers more practical.
-We can use certbot wildcard TLS certs to securitize the communication with remote hosts.
-Provisioning the LXC containers will be done via ansible (as are all the other services and servers) via an LXC configuration file. The ansible role is called lxc in the setup.yml
+We can use certbot TLS certs to securitize the communication with remote hosts.
 
-For network details see notes.txt on the EC2 controller.
+The ansible LXC role will actually install the lxc application on the VPS so that LXC containers can be created for iRedMail and Zulip
+The ansible role is called lxc in the setup.yml
+
+Creating and Provisioning the LXC containers will be done manually. Once the LXC container is created there is some additional configuration for assigning the ip address to the container from the bridge network as well as configuring /etc/resolv.conf (with 1.1.1.1 cloudfare.com as the nameserver) so that DNS resolution can be done from the mail.linode.cloudnetworktesting.com container. DNS is required in order for iRedMail application to work properly.
+
+For network details see notes.txt on the EC2 controller.  The LXC containers will use the bridge interface br0 for the subnet on which to create the LXC containers. The iRedMail will use 10.100.100.11/24 and the Zulip will use 10.100.100.12/24
+
+notes.txt has all the details on the full process, directory paths for configuration on the VPS and the containers themselves, etc.....
 
 
 
@@ -157,6 +163,7 @@ For network details see notes.txt on the EC2 controller.
 
 ## For SSH network details and configuration and files see notes.txt
 
+Use the ProxyJump or the ProxyCommand in the ~/.ssh/config file on the EC2 controller and add the public EC2 VPS cert to the mail.linode.cloudnetworktesting.com container in the ~/.ssh/authorized_keys.  This will make ssh directly from the EC2 controller into the iRedMail LXC container possible.
 
 ## Other servers, apps and services required to get the DevOps infra up and running (these will be used by end users):
 
