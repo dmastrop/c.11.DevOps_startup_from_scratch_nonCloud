@@ -6,7 +6,7 @@ Ownership of a domain. Mine is on Google Cloud DNS and NS will be delegated to l
 
 Linode VPS will be configured with a storage volume as well.
 
-For network details etc. see notes.txt file on EC2 controller
+For network details etc. see notes1.txt file on EC2 controller
 
 
 ## git repository architecture
@@ -137,7 +137,7 @@ Mariadb is installed now and running on the linode VPS server.  Running mariadb 
 
 Mariadb will be used by backup-checker to do the backups on a cronjob.
 
-For details on commands, networking, etc, see notes.txt
+For details on commands, networking, etc, see notes1.txt
 
 
 
@@ -152,16 +152,16 @@ The ansible role is called lxc in the setup.yml
 
 Creating and Provisioning the LXC containers will be done manually. Once the LXC container is created there is some additional configuration for assigning the ip address to the container from the bridge network as well as configuring /etc/resolv.conf (with 1.1.1.1 cloudfare.com as the nameserver) so that DNS resolution can be done from the mail.linode.cloudnetworktesting.com container. DNS is required in order for iRedMail application to work properly.
 
-For network details see notes.txt on the EC2 controller.  The LXC containers will use the bridge interface br0 for the subnet on which to create the LXC containers. The iRedMail will use 10.100.100.11/24 and the Zulip will use 10.100.100.12/24
+For network details see notes1.txt on the EC2 controller.  The LXC containers will use the bridge interface br0 for the subnet on which to create the LXC containers. The iRedMail will use 10.100.100.11/24 and the Zulip will use 10.100.100.12/24
 
-notes.txt has all the details on the full process, directory paths for configuration on the VPS and the containers themselves, etc.....
+notes1.txt has all the details on the full process, directory paths for configuration on the VPS and the containers themselves, etc.....
 
 
 
 ## This completes the basic infrastructure setup
 
 
-## For SSH network details and configuration and files see notes.txt
+## For SSH network details and configuration and files see notes1.txt
 
 Use the ProxyJump or the ProxyCommand in the ~/.ssh/config file on the EC2 controller and add the public EC2 VPS cert to the mail.linode.cloudnetworktesting.com container in the ~/.ssh/authorized_keys.  This will make ssh directly from the EC2 controller into the iRedMail LXC container possible.
 
@@ -184,6 +184,11 @@ Each of these are cited below in terms of the infrastructre design and pipeline 
 
 ## iRedMail:
 
+The installation of this is complex. There is an LXC mariadb that is not associated with the linode VPS. There is also a nginx service to serve the webmail application. The mail can be accessed through the web via either Roundcube or Web admin panel (iRedAdmin). THe URLS are in notes1.txt file.
+
+The bundle also includes iRedAPD - Postfix Policy Server
+
+It uses Dovecot an open-source email server that acts as a mail storage server, mail proxy server, or lightweight mail user agent (MUA)
 
 ## Zuplip collaboration:
 
