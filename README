@@ -190,6 +190,8 @@ The bundle also includes iRedAPD - Postfix Policy Server
 
 It uses Dovecot an open-source email server that acts as a mail storage server, mail proxy server, or lightweight mail user agent (MUA)
 
+The notesx.txt file has the complete installation process including how to configure the LXC container prior to installing iRedMail and configuring DNS for the mail server as well as a TLS cert for the service via certbot.
+
 ## Zuplip collaboration:
 
 
