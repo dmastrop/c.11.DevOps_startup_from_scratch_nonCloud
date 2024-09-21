@@ -6,6 +6,33 @@
 # masquerade is required for the wireguard traffic to go out to the public network. Similar to what was done for bridge network 
 # in br0.network file
 # note that this is a *nat so the address will be nat'ed to the VPS public ip address for outbound traffic.
+
+#iRedMail mail server rules:
+# Any network packet that comes in
+# and has VPS' public IP as its destination
+# and is trying to connect to Dovecot (143) or Postfix (25, 587)
+# route it to the iRedMail LXC.
+# I'm using only IMAP STARTTLS (143) and SMTP STARTTLS (587),
+# but you can add POP3 and/or SSL variant if you want.
+# Check https://docs.iredmail.org/network.ports.html for details, but
+# ignore 80/443 - only HTTP(S) entrypoint will be on the VPS (Traefik)
+-A PREROUTING -p tcp -m tcp -d 173.230.155.238 --dport 25 -j DNAT --to-destination 10.100.100.11:25
+# Postfix: This allows communication with other mail servers. This one for receiving emails from other mail  servers from the outside
+
+-A PREROUTING -p tcp -m tcp -d 173.230.155.238 --dport 143 -j DNAT --to-destination 10.100.100.11:143
+# Dovecot: retrieving mail by end users in mail clients from outside
+
+-A PREROUTING -p tcp -m tcp -d 173.230.155.238 --dport 587 -j DNAT --to-destination 10.100.100.11:587
+# Postfix: allow end users to send mail from outside
+
+# When network packets are coming from the internal network,
+# send it directly to the LXC.
+-A OUTPUT -d 173.230.155.238 -p tcp -m tcp --dport 143 -j DNAT --to-destination 10.100.100.11:143
+-A OUTPUT -d 173.230.155.230 -p tcp -m tcp --dport 587 -j DNAT --to-destination 10.100.100.11:587
+# Script on VPS will send notifications to the mail server. It will need to send to port 587. 
+# No need to leave the VPS. This will route it directly to the private ip on 587 to send the notifications email to my mail server
+
+
 -A POSTROUTING -s 10.100.94.0/24 -o eth0 -j MASQUERADE
 COMMIT
 
