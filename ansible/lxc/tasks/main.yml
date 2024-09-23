@@ -58,3 +58,28 @@
   ansible.builtin.systemd:
     name: lxc@mail.linode.cloudnetworktesting.com
     enabled: yes
+
+
+     
+ ##  Do the same for the zulip.linode.cloudnetworktesting.com LXC container number 2
+ 
+- name: backup script for lxc zulip.linode.cloudnetworktesting.com
+  ansible.builtin.copy:
+    src: files/lxc-backup-zulip-linode-cloudnetworktesting-com.sh
+    dest: /root/scripts
+    owner: root
+    group: root
+    mode: '700'
+
+- name: add backup script for lxc zulip.linode.cloudnetworktesting.com to cron
+  ansible.builtin.cron:
+    name: lxc zulip.linode.cloudnetworktesting.com backup
+    minute: "11"
+    hour: "1"
+    user: root
+    job: "/root/scripts/lxc-backup-zulip-linode-cloudnetworktesting-com.sh > /dev/null 2>&1"
+
+- name: ensure lxc zulip.linode.cloudnetworktesting.com is enabled at boot
+  ansible.builtin.systemd:
+    name: lxc@zulip.linode.cloudnetworktesting.com
+    enabled: yes      
