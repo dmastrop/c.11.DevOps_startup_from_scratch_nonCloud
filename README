@@ -1,3 +1,5 @@
+# NOTE: for implementation specifics, commands, directories and script details see notes.txt on the local VSCode repo or the EC2 controller repo. The notes.txt are not publishied to the github repo.
+
 # Tools and process used in building this infrastructure include the following:
 
 Base server: VPS server (linode) running latest Archlinux
@@ -191,6 +193,93 @@ The bundle also includes iRedAPD - Postfix Policy Server
 It uses Dovecot an open-source email server that acts as a mail storage server, mail proxy server, or lightweight mail user agent (MUA)
 
 The notesx.txt file has the complete installation process including how to configure the LXC container prior to installing iRedMail and configuring DNS for the mail server as well as a TLS cert for the service via certbot.
+
+### Additonial details about the implementation:
+Use a certbot certificate as this is for non-HTTP traffic. The HTTP/HTTPS traffic will use Traefik and those certs will be installed on there.
+For this generate a new certbot cert for mail.linode.cloudnetworktesting.com iRedMail domain
+
+Once the certs are created and in the letsencrypt/archive and live directories on the VPS they then have to be tranferred onto the iRedMai LXC container
+
+An lxc-mount must be added to the lxc config file on the VPS for both live and archive directories
+
+Reboot the LXC container and verify that the certs are on the container
+See notes.txt for specific directory details, etc.
+
+Next edit the Postfix and Dovecot services on the LXC container to use these certificates
+
+Restart both services so that the certs are loaded.
+
+### User configuration and iRedMail Web Admin console
+
+At this point we should be able to hit the Web Admin site for iRedMail through the browser on TLS/HTTPS
+It fails from non Wireguard VPN because VPS does not have a webserver (nginx) yet to forward the traffic to the LXC container
+
+However putting the LXC container address in the browser to the iRedMail LXC container at LXC private container address should work
+But the Wireguard VPN has to be up on the Windows client
+
+First add the LXC container entire private subnet to the Wireguard allowed IP list on the Windows client
+This works because the iRedMail container is already running the nginx web server on it
+
+The self signed cert is fine to accept
+Must use firefox. Micrsoft edge and chrome will not accept the self signed certbot cert
+
+Log into the iRedMail Web Admin console using the Web Admin url and the private ip address of the LXC container. The user is the postmaster user.
+
+
+Add users to the email domain linode.cloudnetworktesting.com
+This will include several users that will be used for notifications, personal email, reports.
+
+NOTE that the MX record will redirect linode.cloudnetworktesting.com to mail.linode.cloudnetworktesting.com
+
+
+### iptables
+
+iptables nat rules need to be added for 139, 587 and 25
+The NAT rules are required to redirect the traffic coming into the VPS to the iRedMail LXC container.
+
+Run the ansible-playbook security role once the iptables have been added to the playbook
+
+Verify that the iptables nat rules have been added to the VPS with iptables -t nat -nvL (iptables -nvL will just show the base rules)
+
+Once the rules are allowed run telnet tests from EC2 controller or mac laptop to ports 587, 139 and 25
+
+NOTE: for port 25 need to raise support ticket to open port 25 up. They block outbound 25 by default for spam protection
+
+Even with the port 25 opened, the telnet still fails because Comcast/Xfinity and AWS EC2 both block inbound and outbund port 25
+
+The way to test port 25 is to use the Windows Wireguard VPN client and tunnel the port 25 telent through the blocks.At the VPS the packet will be de-encapsulated and nat'ed to the LXC private container address.  The source ip will be a private wireguard ip address and this is ALLOWED all by the iptables as well.
+
+The packet to the private ip LXC container ip is routed throiugh a bridge interface on the VPS routing table to the LXC container.
+
+The bridge interface is used for all LXC containers on the VPS (loopback address on the VPS is used for docker containers)
+
+
+
+### Thunderbird clients and testing the email services with inter-domain sending and receiving of email
+
+Add Thunderbird clients to the Mac and windows laoptops and configure the notifications user on the Mac and a personal email user on the Windows.
+The users should be able to be verified as they were configured earlier on the iRedMail via the Web console above.
+
+Send the email from notifications acccount to check-auth@verifier.port25.com
+If sucessful will get Authentication Report:
+This checks the DKIM DNS record as well as the SPF (TXT) DNS records and verified the inter-domain email reception on the notifications Thunderbird account.
+
+Summary of Results
+
+SPF check:          pass
+"iprev" check:      pass
+DKIM check:         pass
+
+
+At this point the email server is fully functional
+
+Ran additional tests with inter-domain emails to gmail account (to and from) the linode.cloudnetworktesting.com account and it is verified.
+
+
+
+
+
+
 
 ## Zuplip collaboration:
 
