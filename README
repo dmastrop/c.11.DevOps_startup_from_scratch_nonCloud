@@ -284,7 +284,182 @@ Ran additional tests with inter-domain emails to gmail account (to and from) the
 ## Zuplip collaboration:
 
 
+
+
+
+
+
+
+
 ## Traefik:
+
+### Traefik, PART1:
+
+
+
+#### TLS and HTTPS high level security for this project: 
+
+Traefik is a reverse proxy and TLS termination proxy and also can be used as a loadbalancer
+
+
+It is critical on this setup because it is the only way to access HTTPS into the VPS
+
+
+
+It will be deployed as a docker container and not an LXC container so it will use the loopback address on the VPS rather than the bridge interface
+
+It will route the traffic the appropriate docker container or LXC container on the backend.
+Traefik:
+
+For zulp and for iRedMail it will be used so that the web admin consoles for each can be reached through the public interface. Right now we are getting the web console of both via going to the private ip address.  The certs used for this are not the certbot certs created for iRedMail for example,  but the default nginx TLS certs that are with the zulip and iRedMail nginx instances (they are both self signed certs)
+
+
+
+For the actual mail the iRedMail cert uses the certbot cert
+
+For webadmin is it using a self signed cert from GuangDong (see above) for now until Traefik is up
+
+For zulip it is also a self signed cert for the nginx (webadmin) (see above) until Traefik is up
+
+
+For zulip, traefik will also be used for client to server communication for the actual messaging.(unlike iRedMail which uses certbot cert for the actual mail sending and receiving)
+
+Traefick will have own ssl/TLS certs and will expose the public ip address
+
+
+
+#### Docker container for Traefik
+
+Traefik will run as a docker container on the VPS
+the loopback address on the VPS will be used to route the traffic coming into the public VPS interace to the the traefik docker container.
+The good thing about docker is that the iptables rules will automatically be added to the iptables as the docker container is configured and run. So the port 80 traffic and the 443 traffic will be allowed through the VPS interface and into the loopback interface to the docker container.
+ When the container is started and run we will map 80 on VPS to 80 on the container and 443 on the VPS to 443 on the container. See below.
+
+ [root@vps ~]# docker ps
+CONTAINER ID   IMAGE            COMMAND                  CREATED        STATUS        PORTS                                                                      NAMES
+d8e96b83e26c   traefik:latest   "/entrypoint.sh --lo…"   17 hours ago   Up 17 hours   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp   traefik.linode.cloudnetworktesting.com
+
+NOTE: the traefik is a reverse proxy and TLS termination point and will be used to redirect incoming HTTPS traffic to the VPS to the appropriate LXC container below using the file provider. More on this below (PART3)
+
+
+
+#### Routing to LXC containers:
+
+Full network diagrams are available in the word doc.
+See below. Traefik will be used to route the traffic to the zulip LXC container
+Traefik providers route traffic to endpoints
+File providers are used specifically for linux LXC containers. We will use these to route traffic to the web admin servers for LXC iRedMail and LXC zulip and zulip can use this also for HTTPS messaging traffic as well (client to server communication)
+The file provider will tell it for zulip, for example,  route the traffic to the LXC at 10.100.100.12
+
+
+#### Routing to Docker containers:
+
+For gitlab it will be a bit different (docker container)
+A docker provider instead of a traefik provider will be used
+Docker labels will be used in traefik to add to the traefik config so that it can route the traffic to the gitlab docker container
+
+
+### Traefik, PART2:
+
+This involves adding the traefik role to the ansible-playbook. This part of the ansible playbook will deploy the traefik docker instance as noted above and below:
+
+ [root@vps ~]# docker ps
+CONTAINER ID   IMAGE            COMMAND                  CREATED        STATUS        PORTS                                                                      NAMES
+d8e96b83e26c   traefik:latest   "/entrypoint.sh --lo…"   17 hours ago   Up 17 hours   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp   traefik.linode.cloudnetworktesting.com
+
+
+An A record for the docker container, traefik.linode.cloudnetworktesting.com must be added to the linode Domains manager. The FQDN will be used in the browser for the Traefik Web Admin console access. Note that ansible playbook will also configure the password (add this .env file to the .gitignore, even though the password is entered in encoded format)
+
+Note that the docker network for this docker container is named 'web' as this traefik docker container is for all HTTP/HTTPS traffic that needs to get into the private VPS network.
+
+The docker-compose.yml file is used to bring up the traefik docker container. See the file on the github repo for comments regarding details of the code in this file.
+
+/traefik/.env will have all the values of the variables used in the docker-compose.yml file.
+Note that the ip_allowlist (formerly whitelist) covers the entire private ip subnet range.
+
+Once the docker container is up after running the playbook. the Traefik Web UI Admin console should be able to be reached from the Windows Wireguard VPN client using the dummy A record created above with the private IP. This is just a temporary workaround to get into the Traefik web admin console until the console is reachable via the public ip and FQDN (see PART3 below)
+
+
+#### Detailed packet flow with Traefik
+
+When we enter https://traefik.linode.cloudnetworktesitng.com it resolves to public ip of VPS
+Packet hits VPS and 443 is a match for the docker container on the VPS listening on 443. See below from VPS
+
+[root@vps traefik]# docker ps
+CONTAINER ID   IMAGE            COMMAND                  CREATED          STATUS          PORTS                                                                      NAMES
+d8e96b83e26c   traefik:latest   "/entrypoint.sh --lo…"   20 minutes ago   Up 20 minutes   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp   traefik.linode.cloudnetworktesting.com 
+
+
+the 443 host is mapped to 443 on traefik docker container.
+
+The packet is forwarded using the loopback interface to the container on 443.
+
+The third router below is activated because host header has traefik.linode.cloudnetworktesting.com
+
+Click on the router in the web console and you can see the below
+
+traffic@docker is the router
+Then the 2 middlewares are hit: first the ipallowlist. The source must be from the 10.100.100.x subnet (whichi it is if from wireguard VPN on windows). If this fails you will get Forbidden and no basic auth challenge. See above when I tried going in on nonVPN client (Mac).
+Next basic auth which is the admin user and ******* password.
+
+Finally the service api@internal is hit. This will route the packet to the final destination. For example if there is redirection to the iRedMail LXC container or the zulip LXC container. These will be handled in next section (PART3) under the ansible-playbook configs folder under traefik directory. LXC containers use the file provider (whereas redirection to docker containers use the docker provider and labels. Gitlab will use this)
+Once we get the redirection up on to iRedMail and Zulip we will be able to web Admn in via the public ip addresses (but still must use VPN because of the traefik whitelist)
+
+### Traefik, PART3:
+
+
+#### Introduction:
+
+Using the file provider to redirect traefik traffic flows to the appropriate LXC container based upon the file provider in Traefik. More on this later. NOTE: the docker provider will be used to redirect traffic flow to docker containers using labels.  This will be done for a gitllab docker container.  For now the focus is on the 2 LXC containers for iRedMail and Zulip.
+
+[root@vps ~]# lxc-ls -f
+NAME                                 STATE   AUTOSTART GROUPS IPV4          IPV6 UNPRIVILEGED 
+mail.linode.cloudnetworktesting.com  RUNNING 0         -      10.100.100.11 -    false        
+zulip.linode.cloudnetworktesting.com RUNNING 0         -      10.100.100.12 -    false        
+[root@vps ~]# 
+
+This is all about getting public access to the LXC containers. Right now, we are going directly to the 10.100.100.x private ip addresses in the browser through the VPN
+
+Since traefik whitelists 10.100.100.x only, we still have to have the VPN up but we will now be able to get to the Web Admin of iRedMail and Zulip through the FQDN and public ip address.
+
+Note the SSL/TLS certs for this HTTPS traffic is in Traefik and NOT certbot. Certbot is only used for the native apps like iRedMail mail protocols.
+
+All web traffic passes through the Traefik as SSL termination point. The Traefik will redirect the cleartext HTTP traefik to the proper LXC container.   The backend can be done through HTTPS but if the network is that compromised, there are other security problems. In general the backend does not need to be encrypted.
+
+
+The file providers are in the traefik/traefik/configs/ part of the ansible-playbook as mail.yml for redirection to the iRedMail LXC container. and zulip.yml for redirecton to the Zulip LXC container.
+
+
+#### Anbible plabyook for the file providers:
+
+
+Currently attempting to get to https://mail.linode.cloudnetworktesitng.com admin page will result in 404 because traefik dose not know how to route the traffic for this Hostname URL.
+
+This is the purpose of the file providers section in ansible, to configure traefik with the redirection configuration to do this.
+
+For example, the mail.yml has the routing for traefik to the backend iRedMail LXC container. Note that it is Host header based and the redirection endpoint is provided at the bottom as services: mail: loadbalancer: servers: url: with the private ip of the iRedMail LXC container.
+
+Once this is configured on the traefik docker container this will permit public ip address HTTPS traffic for the Web Admin URL to get redirected to the iRedMail container. Note that the source ip is still whitelisted so the Wireguard VPN must be up.
+
+NOTE: the file providers directory is specified in the docker-compose.yml file so that the container knows which directory is for the file providers. The /configs directory is copied over from source code to the container as part of the ansible plabyook. Finally, in the docker-compose.yml file note that the /configs directory from source is mounted to the traefik docker container as a volume.
+
+NOTE: Important note that this is specifically for the public access to the iRedMail web admin via HTTPS. This is not for sending and receiving email.That is through mail protocols 587, 143 and 25 (SMTP and IMAP). This email is encrypted with certbot cert and not the SSL certs on traefik
+
+
+After running the ansible playbook the https://mail.linode.cloudnetworktesting.com admin page now works
+
+#### The same needs to be done for the Zulip admin web page
+
+File provider needs to be added under traefik/traefik/configs/zulip.yml for the Zulip web admin traffic redirection
+
+
+
+
+
+
+
+
+
 
 
 ## Pi-Hole:
