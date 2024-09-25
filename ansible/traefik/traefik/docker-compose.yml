@@ -1,0 +1,80 @@
+services:
+# NOTE the ${} are variables that will be defined in separate file
+  traefik:
+    container_name: ${container_name}
+    hostname: ${hostname}
+    image: ${docker_image}:${docker_image_tag}
+    restart: unless-stopped
+    # the commands below will be passed to the traefik binary. If running traefik command from the command line these would be the
+    # arguments and flgs to start the traefik service on the docker container
+    # enable the dashboard
+    # set up http and https entrypoints on ports 80 and 443
+    # enable both docker providers (for redirection to the gitlab docker container) and file providers (redirect to LXC containers
+    # like iRedMail and zulip
+    # Set up automatic certs with let's encrypt
+    # The ports are the -p in docker run, i.e. mapping host 80 to docker container 80 and host 443 to docker container 443
+    # docker.sock is used so docker can communicate with docker engine and monitor for docker labels. These are required for the 
+    # docker provider redirection by traefik to docker containers (using docker providers)
+    # acme.json is for cert storage
+    # ./configs is for the file provider which is used to redirect to LXC linux containers like iRedMail and zulip
+    # This traefik container is part of the docker web network
+    # Docker labels section below:
+    # the last part is the setup for the lables that will be used by the docker provider: basically set up a router to match a 
+    # certain hostname, then redirect http to https, set up lets encrypt as the TLS resolver, 
+    # Finally set up the whitelist and basic auth. Since the release of Traefik 3.0, 'ipwhitelist' is deprecated and is now called 
+    # 'ipallowlist'  This has been corrected below. Also '${service}-whitelist' has been renamed '${service}-allowlist', and 
+    # '${whitelist}' should become '${ip_allowlist}'  All of these corrections have been done below and are in the latest git repo.
+    # Note in Traefik 3.0 and up the hostregexp is '.+' which is already corrected below  
+    command:
+      - "--log.level=ERROR"
+      - "--accesslog=true"
+      - "--serverstransport.insecureskipverify=true"
+
+      - "--api=true"
+      - "--api.dashboard=true"
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+
+      - "--providers.docker=true"
+      - "--providers.docker.network=web"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/configs/"
+      - "--providers.file.watch=true"
+
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http"
+      - "--certificatesresolvers.letsencrypt.acme.email=${letsencrypt_email}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
+
+      - "--global.sendAnonymousUsage=false"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme.json:/acme.json"
+      - "./configs/:/configs/"
+    networks:
+      - web
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${service}.rule=Host(`${hostname}`)"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.redirects.rule=hostregexp(`.+`)"
+      - "traefik.http.routers.redirects.entrypoints=http"
+      - "traefik.http.routers.redirects.middlewares=redirect-to-https"
+      - "traefik.http.routers.${service}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service}.service=api@internal"
+      - "traefik.http.routers.${service}.middlewares=${service}-allowlist,${service}-auth"
+      - "traefik.http.middlewares.${service}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+      - "traefik.http.middlewares.${service}-auth.basicauth.users=${traefik_dashboard_username}:${traefik_dashboard_password}"
+
+networks:
+  web:
+    external: true

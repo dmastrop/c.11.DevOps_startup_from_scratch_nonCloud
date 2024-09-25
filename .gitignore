@@ -19,3 +19,4 @@ ansible_log_path.txt
 notes_local_VSCode.txt
 notes_local_VSCode1.txt
 notes_local_VSCode*.txt
+.env

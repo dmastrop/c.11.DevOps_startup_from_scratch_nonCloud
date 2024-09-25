@@ -1,0 +1,34 @@
+- name: services directory
+  ansible.builtin.file:
+    path: /root/services/
+    state: directory
+    mode: '700'
+
+- name: copy
+  ansible.builtin.copy:
+  # copy the complete traefik dircctory to this /root/servivces location on the VPS
+      src: traefik
+      dest: /root/services/
+      owner: root
+      group: root
+      mode: '700'
+
+- name: create docker network 'web'
+  # all containers for docker with traefik will be a part of this docker network
+  # other containers for testing, etc for example, can be run outside of this network
+  community.general.docker_network:
+    name: web
+
+- name: acme.json
+  ansible.builtin.file:
+  # this file is important. It has the TLS cert information from let's encrypt that traefik will use to terminate the TLS/HTTPS 
+  # connections
+    path: /root/services/traefik/acme.json
+    owner: root
+    group: root
+    mode: '600'
+    state: touch
+
+- name: run traefik
+  # the traefik docker container itself will be run with docker compose
+  ansible.builtin.shell: "cd /root/services/traefik && docker-compose down && docker-compose up -d"
