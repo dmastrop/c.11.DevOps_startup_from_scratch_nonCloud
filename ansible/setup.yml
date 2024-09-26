@@ -10,3 +10,4 @@
     - mariadb
     - lxc
     - traefik
+    - pi-hole
