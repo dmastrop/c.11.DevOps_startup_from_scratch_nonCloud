@@ -1,0 +1,40 @@
+- name: services directory
+  ansible.builtin.file:
+    path: /root/services/
+    state: directory
+    mode: '700'
+
+- name: copy
+  ansible.builtin.copy:
+    src: pi-hole
+    dest: /root/services/
+    owner: root
+    group: root
+    mode: '700'
+
+- name: etc-pihole volume
+  # need to make sure this volume exists
+  # permissions must be set this way in order for pi-hole user to use the volume
+  ansible.builtin.file:
+    path: /root/services/pi-hole/etc-pihole
+    state: directory
+    owner: '999'
+    group: '999'
+    mode: '755'
+
+- name: run pi-hole
+  # this will use a docker-compose.yml file like the traefik to create the pi-hole on a docker container
+  # the docker compose yml is under the /root/services/pi-hole directory which is a copy of the source code from ansible pi-hole
+  # playbook directory (see above)
+  ansible.builtin.shell: "cd /root/services/pi-hole && docker-compose down && docker-compose up -d"
+
+- name: add pi-hole backup script to crontab
+  # once this is done crontab -l will show a cronjob to back this up. We did not have this for traefik because it does not need
+  # to be backed up.   Everything is in the acme.json and if that is lost it will get regenerated once traffic flows to the traefix
+  # reverse proxy.
+  ansible.builtin.cron:
+    name: backup pi-hole
+    minute: "01"
+    hour: "2"
+    user: root
+    job: "/root/services/pi-hole/backup.sh > /dev/null 2>&1"

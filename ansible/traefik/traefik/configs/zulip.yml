@@ -1,0 +1,28 @@
+http:
+# This file is very similar to the iRedMail file provider mail.yml file.  The only differences are the name of the service
+# here is 'zulip' and the ip addresses and the Host header name as indicated below.  See the extensive notes in mail.yml for
+# technical details. They apply here as well.
+# NOTE that the middleware is a unique name from the mail-allowlist. This way we can customize the whitelist for each service
+  routers:
+    zulip:
+      rule: Host(`zulip.linode.cloudnetworktesting.com`)
+      tls:
+        certresolver:
+          letsencrypt
+      service: zulip
+      entryPoints:
+        - https
+      middlewares:
+        - zulip-allowlist
+
+  middlewares:
+    zulip-allowlist:
+      ipallowlist:
+        sourceRange:
+          - "10.100.94.1/24"
+
+  services:
+    zulip:
+      loadBalancer:
+        servers:
+          - url: https://10.100.100.12

@@ -1,0 +1,32 @@
+http:
+# this is the routing for traefik to the backend iRedMail LXC container. Note that it is Host header based and the redirection 
+# endpoint is provided at the bottom as services: mail: loadbalancer: servers: url: with the private ip of the 
+# iRedMail LXC container
+# Once this is configured on the traefik docker container this will permit public ip address HTTPS traffic for the Web Admin URL to 
+# get redirected to the iRedMail container. Note that the source ip is still whitelisted so the Wireguard VPN must be up.
+# NOTE also that the mail-whitelist is replaced with mail-allowlist as of traefik 3.0
+# NOTE: Important note that this is specifically for the public access to the iRedMail web admin via HTTPS. This is not for sending and receiving email.That is through mail protocols 587, 143 and 25 (SMTP and IMAP). This email is encrypted with certbot cert and not the SSL certs on traefik
+# NOTE that the service name 'mail' must be consistent through the yml below.
+  routers:
+    mail:
+      rule: Host(`mail.linode.cloudnetworktesting.com`)
+      tls:
+        certresolver:
+          letsencrypt
+      service: mail
+      entryPoints:
+        - https
+      middlewares:
+        - mail-allowlist
+
+  middlewares:
+    mail-allowlist:
+      ipallowlist:
+        sourceRange:
+          - "10.100.94.1/24"
+
+  services:
+    mail:
+      loadBalancer:
+        servers:
+          - url: https://10.100.100.11

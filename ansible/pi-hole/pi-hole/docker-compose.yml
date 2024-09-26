@@ -1,0 +1,67 @@
+services:
+# the labels below are how traefik routes or steers the traffic for this pi-hole docker container when it comes to it on the public VPS interface
+# The ${} are variables and will be defined in the pi-hole/pi-hole/.env file (note this is added to .gitignore)
+# pi-hole container will be in the docker network web just like traefik is. 
+# Recall that the VPS uses the loopback ip address 10.36.7.11 to route the traffic to docker containers that are on another different private network (like 172.21.x.x)
+# The pi-hole DNS ports are 53 tcp and udp and 67 udp, but 67 only used if pi-hole is acting as a dhcp server as well
+# These ports are mapped from VPS to the container through the loopback ip address
+# The etc-pihole and etc-dnsmasqd and etc-hosts directories will be mapped to volumes for persistency
+# The etc-hosts has a unique function in this setup: pi-hole container hostname set to same name as the A record that maps to the
+# public VPS ip adddress (in linode domains: pi-hole.linode.cloudnetworktesting.com) then there will be a problem
+# The docker container will assign the private docker container ip address 172.21.x.x to the hostname.
+# Need a custom /etc/hosts file mounted as a docker volume from the /etc-hosts on the container to specify the host to ip mapping 
+# using the public VPS address. If we do not create our own /etc/hosts then pi-hole will create its own /etc/hosts inside the container
+# (not in a volume) and it will use the private ip container address and not the public VPS address
+# If pi-hole is set as the DNS server (as with Wireguard clients), when asked to resolve pi-hole.linode.cloudnetworktesitng.com, if
+# there is no /etc/hosts volume from the /etc-hosts with public VPS, it will use its local /etc/hosts that has the private container
+# ip address. This will cause the wireguard clients to fail because the private address cannot be routed
+# With the volume /etc/hosts from the /etc-hosts with the public VPS ip address, it will not create its own /etc/hosts and this volume
+# /etc/hosts will be used to resolve pi-hole.linode.cloudnetworktesting.com to the proper public VPS ip address.
+# This will resolve as if it used the upstream name server (linode domain server). This is all so that we can use traefik to route
+# to the public ip address via HTTPS through the whitelist Wireguard. This won't work unless the public ip is used.
+# The next block is the pi-hole env vars that will be set in the .env file including the admin password.
+#
+# The labels below will be used by traefik to route the incoming HTTPS443 packets to the pi-hole docker container based upon the 
+# Host header specified as Host below. Very similar as the file providers that were used for LXC containers iRedMail and zulip, 
+# except here the docker provider is used by traefik along with these labels, so there are no explicit config file provider files to
+# be added to ansible. It is all done on the fly for docker containers based upon the labes below.
+# The port 80 is the webserver port on the pi-hole docker container running the webadmin GUI.
+  pihole:
+    container_name: ${container_name}
+    hostname: ${hostname}
+    image: ${docker_image}:${docker_image_tag}
+    restart: unless-stopped
+    networks:
+      - web
+    ports:
+      - '${loopback_ip}:53:53/tcp'
+      - '${loopback_ip}:53:53/udp'
+      - '${loopback_ip}:67:67/udp'  # Only required if you are using Pi-hole as your DHCP server
+    volumes:
+      - ./etc-pihole/:/etc/pihole/
+      - ./etc-dnsmasqd/:/etc/dnsmasq.d/
+      - ./etc-hosts:/etc/hosts:ro
+    environment:
+      ServerIP: ${server_ip}
+      VIRTUAL_HOST: ${hostname}
+      PIHOLE_DNS_: ${pihole_dns}
+      WEBPASSWORD: ${web_password}
+      ADMIN_EMAIL: ${admin_email}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.${service}.rule=Host(`${hostname}`)"
+      - "traefik.http.routers.${service}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service}.entrypoints=https"
+      - "traefik.http.services.${service}.loadbalancer.server.port=80"
+      - "traefik.http.routers.${service}.middlewares=${service}-allowlist"
+      - "traefik.http.middlewares.${service}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+
+networks:
+  web:
+    external: true

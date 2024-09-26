@@ -25,6 +25,11 @@ services:
     # 'ipallowlist'  This has been corrected below. Also '${service}-whitelist' has been renamed '${service}-allowlist', and 
     # '${whitelist}' should become '${ip_allowlist}'  All of these corrections have been done below and are in the latest git repo.
     # Note in Traefik 3.0 and up the hostregexp is '.+' which is already corrected below  
+    #
+    # NOTE: the file providers directory is specified in the docker-compose.yml file (see providers.file.directory=/configs/)
+    # so that the container knows which directory is for the file providers. The /configs directory is copied over from source code
+    # to the container as part of the ansible plabyook. Finally, in the docker-compose.yml file note that the /configs directory 
+    # from source is mounted to the traefik docker container as a volume.
     command:
       - "--log.level=ERROR"
       - "--accesslog=true"
