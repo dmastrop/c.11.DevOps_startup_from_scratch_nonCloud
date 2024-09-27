@@ -31,6 +31,14 @@ services:
 # will use pi-hole as the DNS resolver.
 # We will add DNS = loopback_ip in the Wireguard configuration on the wireguard clients to force all DNS requests from the 
 # wireguard clients to pi-hole docker container.
+#
+# NOTE the port 80 in traefik labels below:
+# NOTE that there is no iptables rule for port 80. This is in the docker-compose.yml file for the pi-hole.  Traefik uses the labels # on the containers to route the traffic for docker containers for HTTP/HTTPS. The 53 DNS traffic for pi-hole on the other hand
+# needs the iptables nat rules to redirect from loopback to the docker container pi-hole private ip address.
+#But this port 80 is allowed through (initial dashboard in browser) and there is a redirection on the pi-hole nginx web server to redirect to port 443. Once the 
+# redirect to 443 occurs the HTTP router for pi-hole then challenges the user for basic auth and the HTTP router for pi-hole then routes the traffic to port 80 and container ip address of pi-hole based 
+# upon the Host header in the 443 packet.. The 80 below is just for the initial hit to the pi-hole through Traefik. The redirection # is where the traefik HTTP router kicks in based upon the Host header.
+
   pihole:
     container_name: ${container_name}
     hostname: ${hostname}
