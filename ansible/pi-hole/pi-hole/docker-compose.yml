@@ -26,6 +26,11 @@ services:
 # except here the docker provider is used by traefik along with these labels, so there are no explicit config file provider files to
 # be added to ansible. It is all done on the fly for docker containers based upon the labes below.
 # The port 80 is the webserver port on the pi-hole docker container running the webadmin GUI.
+#
+# NOTE the ports configuration below. The loopback_ip is listening on the DNS ports 53 UDP and TCP. Thus DNS traffic to this address
+# will use pi-hole as the DNS resolver.
+# We will add DNS = loopback_ip in the Wireguard configuration on the wireguard clients to force all DNS requests from the 
+# wireguard clients to pi-hole docker container.
   pihole:
     container_name: ${container_name}
     hostname: ${hostname}
