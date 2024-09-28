@@ -22,3 +22,93 @@
     priv: 'backups.*:ALL'
     state: present
   no_log: true
+
+
+
+ ## the following blocks are for adding the  nextcloud db user so that the VPS mariadb can be  used by the nextcloud docker container
+
+- name: check for database user 'nextcloud@localhost'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "localhost"
+    # this defines the host from which this user can connect to the mariadb
+    priv: 'nextcloud.*:ALL'
+    # priv is all access to the nextcloud db
+    state: present
+  no_log: true
+
+- name: check for database user 'nextcloud@10.100.94.0/24'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "10.100.94.%"
+    # this is the wireguard subnet clients
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+## these are the users that will actually be used by the  nextcloud container so that it can access the mariadb with the nextcloud user name
+# The different addresses are the various addresses that docker containers can get when started on the VPS. These are the private
+# docker ip addresses
+# Recall cat /etc/docker/daemon.json default-address-pools are from the subnets listed below. Currently using 17.21.x.x
+# This will permit and nextcloud docker container that is brought up to connect to the mariadb on the VPS with the nextcloud db username
+- name: check for database user 'nextcloud@172.21.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.21.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'nextcloud@172.22.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.22.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'nextcloud@172.23.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.23.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'nextcloud@172.24.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.24.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'nextcloud@172.25.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.25.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true 
+   

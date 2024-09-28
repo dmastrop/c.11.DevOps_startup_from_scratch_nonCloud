@@ -1,0 +1,58 @@
+services:
+# since nextcloud is being created as a docker container, need to set labels so that traefik can route the HTTPS traffic coming into# public interface to the docker container ip address which is routed through the VPS loopback interface
+# Very similar to the pi-hole docker-compose.yml file, this will use .env file for the values of the variables below
+# The volume ./html/var/www/html must be created as noted in the nextcloud documentation
+# This container will also be a part of the docker network as well.
+# All environment vars are in the nextloud website user docs. We only need to set the database stuff
+# The db that is used will target the mariadb running on the VPS 
+# An alternative is to run a new mysql db inside the container, but alternatively the mariadb on host VPS can be accessed
+# by the nextcloud docker container via docker networking and this is the approach taken here.
+#
+# For the labels the first 6 are similar to those used for the pi-hole container insofar as traefik is concerned. 
+# Traefik uses these labels to create the HTTP router that will route the traffic from the VPS public to the nextcloud
+# container ip address.
+# "traefik.http.routers.${service}.middlewares=${service}-allowlist,${service}-redirects,${service}-sts"
+# The line above adds the middleware but also configures redirects and sts, or strict transfer security header
+# The use of the redirects: for CalDAV and CarDAV to work we have to have the redirects configured as below:
+# "traefik.http.middlewares.${service}-redirects.redirectregex.permanent=true"
+#  "traefik.http.middlewares.${service}-redirects.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+# For sts, this is not absolutely necessary but will remove a warning in the nextcloud admin console. The sts labels
+# are the last 3 lines in the labels section below   
+  nextcloud:
+    container_name: ${container_name}
+    hostname: ${hostname}
+    image: ${docker_image}:${docker_image_tag}
+    restart: unless-stopped
+    volumes:
+      - './html:/var/www/html'
+    networks:
+      - web
+    environment:
+      MYSQL_HOST: ${db_host}
+      MYSQL_DATABASE: ${db_name}
+      MYSQL_USER: ${db_user}
+      MYSQL_PASSWORD: ${db_password}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.${service}.rule=Host(`${hostname}`)"
+      - "traefik.http.routers.${service}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service}.entrypoints=https"
+      - "traefik.http.services.${service}.loadbalancer.server.port=80"
+      - "traefik.http.routers.${service}.middlewares=${service}-allowlist,${service}-redirects,${service}-sts"
+      - "traefik.http.middlewares.${service}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+      - "traefik.http.middlewares.${service}-redirects.redirectregex.permanent=true"
+      - "traefik.http.middlewares.${service}-redirects.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.${service}-redirects.redirectregex.replacement=https://$$1/remote.php/dav/"
+      - "traefik.http.middlewares.${service}-sts.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.${service}-sts.headers.STSPreload=true"
+      - "traefik.http.middlewares.${service}-sts.headers.STSSeconds=15552000"
+
+networks:
+  web:
+    external: true

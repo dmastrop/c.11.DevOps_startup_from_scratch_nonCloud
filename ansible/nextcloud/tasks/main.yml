@@ -1,0 +1,38 @@
+- name: services directory
+  ansible.builtin.file:
+    path: /root/services/
+    state: directory
+    mode: '700'
+
+- name: copy
+  # this will copy over the nextcloud/nextcloud directory from source code
+  ansible.builtin.copy:
+    src: nextcloud
+    dest: /root/services/
+    owner: root
+    group: root
+    mode: '700'
+
+- name: run nextcloud
+  # nextcloud will be created as docker container similar to pi-hole using docker-compose
+  ansible.builtin.shell: "cd /root/services/nextcloud && docker-compose down && docker-compose up -d"
+
+- name: add backup nextcloud script to crontab
+  # crontab -l should be used after the install to verify cronjob is added
+  ansible.builtin.cron:
+    name: backup nextcloud
+    minute: "06"
+    hour: "2"
+    user: root
+    job: "/root/services/nextcloud/backup.sh > /dev/null 2>&1"
+
+- name: add background jobs to cron
+  # this is a new addtional section
+  # This is added. The cron.php is run in the nextcloud docker container. Without this you will get warning in the nextcloud
+  # admin console everytime the backup script is run
+  ansible.builtin.cron:
+    name: nextcloud background jobs
+    minute: "*/5"
+    hour: "*"
+    user: root
+    job: "docker exec --user www-data nextcloud.linode.cloudnetworktesting.com php cron.php"
