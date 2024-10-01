@@ -10,6 +10,44 @@ Linode VPS will be configured with a storage volume as well.
 
 For network details etc. see notesx.txt file on EC2 controller
 
+## High level list of Appication tools used in this project:
+
+Linode VPS
+
+
+SSL and TLS tools: certbot/letsencrypt for LXC containers non-HTTPS (like mail) and Traefik/letsencrypt for the Traefik HTTPS termination for all the containers (LXC and docker) (Web Admin on nginx in the containers) 
+
+Lots of tools installed on the VPS: docker engine and lxc to name a few.
+
+Ansible is the deployment tool for all of the apps
+
+Wireguard on iPhone and WIndows10 client. Mac is outdated and not supported with Wireguard client.
+The VPN is necessary as an added layer of security.
+
+Mariadb (mysql) on VPS. Note some of the containers have their own mysql db and others utilize the
+mariadb on the host (note: ip tables has to be configured accordingly)
+
+iRedMail (LXC container)
+
+Zulip messaging (LXC container)   Zulip is similar to slack
+
+Traefik (docker container) reverse proxy and SSL termination point for all HTTP/HTTPS traffic going into the LXC and docker containers. Note for iRedMail native mail protocols (IMAP and SMTP) certbot/letsencrypt is used to generate the certs; on Traefik letsencrypt is exclusively used without certbot.
+
+pi-hole (docker container) as a DNS resolver on all Wireguard clients when the VPN tunnel is up. This filters out ads, etc.
+
+Nextcloud (docker container) for doc sharing, and much more
+
+checkmk (docker container) for monitoriing of the VPS and emailing status through an SMTP 
+
+Borg and Borgmatic
+
+Gitlab and Gitlab runner
+
+Python backup-checker
+
+Cronjobs are used for backups for all of the LXC and docker containers as well as the VPC mariadb. An addional 40GB volume for backups has been acquired from linode for this purpose. (/mnt/storage)
+
+
 
 ## git repository architecture
 
@@ -169,7 +207,7 @@ Use the ProxyJump or the ProxyCommand in the ~/.ssh/config file on the EC2 contr
 
 ## Other servers, apps and services required to get the DevOps infra up and running (these will be used by end users):
 
-These include:
+These include: (as mentioned earlier)
 
 iRedMail
 Zulip collaboration tool
@@ -282,6 +320,11 @@ Ran additional tests with inter-domain emails to gmail account (to and from) the
 
 
 ## Zulip collaboration:
+
+NOTE: can use the Windows10 client and iphone as wireguard clients to test this out.
+All traffic must be done on wireguard clients. The zulip.linode.cloudnetworktesting.com site is not reachable outside of the VPN tunnel
+
+
 
 
 
