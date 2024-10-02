@@ -1,4 +1,3 @@
-services:
 # 2 services on this docker compose: checkmk and mailer
 # For checkmk, tmpfs is suggested in checkmk docs for better performance
 # For the volumes, the /etc/localtime on VPS is mapped to /etc/localtime on the container to match the timezones
@@ -9,10 +8,20 @@ services:
 # The labels for checkmk are for the traefik http/https router as was done for the other container. Letsencrypt TLS cert will be
 # used for the HTTPS termination.
 # Note that in the labels, the webserver on checkmk listens on port 5000
+services:
   checkmk:
     container_name: ${container_name}
     hostname: ${hostname}
     image: ${docker_image}:${docker_image_tag}
+    
+   # This is the fix for the checkmk raw high cpu issue. See this link:
+   # https://forum.checkmk.com/t/docker-container-wont-start-xinetd-for-livestatus/41140
+   # For some reason one of the processes checkmk created was stuck in some kind of loop
+    ulimits:
+      nofile:
+        soft: "1024"
+        hard: "1024"
+
     restart: unless-stopped
     tmpfs:
       - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
