@@ -389,7 +389,7 @@ d8e96b83e26c   traefik:latest   "/entrypoint.sh --lo…"   17 hours ago   Up 17 
 NOTE: the traefik is a reverse proxy and TLS termination point and will be used to redirect incoming HTTPS traffic to the VPS to the appropriate LXC container below using the file provider. More on this below (PART3)
 
 
-### Traefik docker container design:
+#### Traefik docker container design:
 
 From the traefik docker-compose.yml file:
 #the commands below will be passed to the traefik binary. If running traefik command from the command line these would be the
