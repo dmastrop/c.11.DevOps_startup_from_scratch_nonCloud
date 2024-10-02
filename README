@@ -634,6 +634,15 @@ docker exec -it --user www-data nextcloud.linode.cloudnetworktesting.com php occ
 Also the email needs to be configured on the nextcloud Admin so that nextcloud can send updates and admin information to the user.  Add the email to the account admin as well. 
 Also can add the iRedMail email info to share the iRedMail with the nextcloud mail app. Make sure to use StartTLS for both IMAP and SMTP and port 143 for the dovecot IMAP
 
+### versions 29.0.8 and 30.0.0 issues
+
+The latest codes unfortunately are throwing many more warnings than before. These will be addressed in 29.0.8 and 30.0.1, but these patches are not avaiable at the time of this writing.
+Will have to downgrade to a 28 version for now until it is patched. The process for downgrading involves wiping out the old docker configuration: drop the mariadb database table "nextcloud" and delete the /root/services/nextcloud/html folder configuration on the VPS. Also put in the older version in the .env file for the nextcloud role: docker_image_tag and update this value in the running /root/services/nextcloud/.env file on the VPS. Then bring back up the container and it should be downgraded. 
+
+
+
+
+
 
 
 ## checkmd:
