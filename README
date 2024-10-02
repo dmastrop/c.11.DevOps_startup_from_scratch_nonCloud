@@ -389,6 +389,37 @@ d8e96b83e26c   traefik:latest   "/entrypoint.sh --lo…"   17 hours ago   Up 17 
 NOTE: the traefik is a reverse proxy and TLS termination point and will be used to redirect incoming HTTPS traffic to the VPS to the appropriate LXC container below using the file provider. More on this below (PART3)
 
 
+### Traefik docker container design:
+
+From the traefik docker-compose.yml file:
+#the commands below will be passed to the traefik binary. If running traefik command from the command line these would be the
+#arguments and flgs to start the traefik service on the docker container
+#enable the dashboard
+#set up http and https entrypoints on ports 80 and 443
+#enable both docker providers (for redirection to the gitlab docker container) and file providers (redirect to LXC containers
+#like iRedMail and zulip
+#Set up automatic certs with let's encrypt
+#The ports are the -p in docker run, i.e. mapping host 80 to docker container 80 and host 443 to docker container 443
+#docker.sock is used so docker can communicate with docker engine and monitor for docker labels. These are required for the 
+#docker provider redirection by traefik to docker containers (using docker providers)
+#acme.json is for cert storage
+#./configs is for the file provider which is used to redirect to LXC linux containers like iRedMail and zulip
+#This traefik container is part of the docker web network
+#Docker labels section below:
+#the last part is the setup for the lables that will be used by the docker provider: basically set up a router to match a 
+#certain hostname, then redirect http to https, set up lets encrypt as the TLS resolver, 
+#Finally set up the whitelist and basic auth. Since the release of Traefik 3.0, 'ipwhitelist' is deprecated and is now called 
+#'ipallowlist'  This has been corrected below. Also '${service}-whitelist' has been renamed '${service}-allowlist', and 
+#'${whitelist}' should become '${ip_allowlist}'  All of these corrections have been done below and are in the latest git repo.
+#Note in Traefik 3.0 and up the hostregexp is '.+' which is already corrected below  
+
+#NOTE: the file providers directory is specified in the docker-compose.yml file (see providers.file.directory=/configs/)
+#so that the container knows which directory is for the file providers. The /configs directory is copied over from source code
+#to the container as part of the ansible plabyook. Finally, in the docker-compose.yml file note that the /configs directory 
+#from source is mounted to the traefik docker container as a volume.
+
+
+
 
 #### Routing to LXC containers:
 
@@ -477,7 +508,7 @@ All web traffic passes through the Traefik as SSL termination point. The Traefik
 The file providers are in the traefik/traefik/configs/ part of the ansible-playbook as mail.yml for redirection to the iRedMail LXC container. and zulip.yml for redirecton to the Zulip LXC container.
 
 
-#### Anbible plabyook for the file providers:
+#### Ansible plabyook for the file providers:
 
 
 Currently attempting to get to https://mail.linode.cloudnetworktesitng.com admin page will result in 404 because traefik dose not know how to route the traffic for this Hostname URL.
@@ -510,6 +541,109 @@ File provider needs to be added under traefik/traefik/configs/zulip.yml for the 
 
 
 ## Pi-Hole:
+
+Pi-Hole is a network ad and tracking blocking application
+We will use the Pi-Hole as DNS server for wireguard. So when VPN is up **all** DNS requests going through the tunnel will use Pi-Hole as DNS Resolver
+All ad related URLs will get 0.0.0.0 response from Pi-Hole (blocked) and all legitimate will get forwarded to the DNS server configured in Pi-Hole (1.1.1.1 cloudflare.com) and resolved
+
+1.1.1.1 is a public DNS resolver operated by Cloudflare that offers a fast and private way to browse the Internet. Unlike most DNS resolvers, 1.1.1.1 does not sell user data to advertisers. In addition, 1.1.1.1 has been measured to be the fastest DNS resolver available.
+
+
+In linode Admin console need to first add an A record for pi-hole: pi-hole.linode.cloudnetworktesting.com
+
+For ansible playbook, in pi-hole/tasks/main.yml copy over the source from the EC2 controller pi-hole directory to the /root/service/pi-hole directory on VPS so VPS can create the pi-hole docker container. We will use a docker container for pi-hole thus routing to it will use the loopback interface on the VPS and not the bridge interface. See earlier sections above for differences between LXC containers and docker containers packet flow and configuration.
+
+The main.yml also has the backup shell script lcoation and the cronjob configuration for the docker container's backup. All LXC and docker containers are backed up as well as mariadb dump to the backup. /mnt/storage is 40GB external volume with linode that has all the backups.
+
+The docker-compose.yml is under pi-hole/pi-hole/docker-compose.yml
+Notes on the docker configuration and design are below:
+
+### Pi-hole Docker container design:
+
+#the labels below are how traefik routes or steers the traffic for this pi-hole docker container when it comes to it on the public VPS interface
+#The ${} are variables and will be defined in the pi-hole/pi-hole/.env file (note this is added to .gitignore)
+#pi-hole container will be in the docker network web just like traefik is. 
+#Recall that the VPS uses the loopback ip address 10.36.7.11 to route the traffic to docker containers that are on another different private network (like 172.21.x.x)
+#The pi-hole DNS ports are 53 tcp and udp and 67 udp, but 67 only used if pi-hole is acting as a dhcp server as well
+#These ports are mapped from VPS to the container through the loopback ip address
+#The etc-pihole and etc-dnsmasqd and etc-hosts directories will be mapped to volumes for persistency
+
+
+etc-hosts and /etc/hosts files:
+#The etc-hosts has a unique function in this setup: pi-hole container hostname set to same name as the A record that maps to the
+#public VPS ip adddress (in linode domains: pi-hole.linode.cloudnetworktesting.com) then there will be a problem
+#The docker container will assign the private docker container ip address 172.21.x.x to the hostname.
+#Need a custom /etc/hosts file mounted as a docker volume from the /etc-hosts on the container to specify the host to ip mapping 
+#using the public VPS address. If we do not create our own /etc/hosts then pi-hole will create its own /etc/hosts inside the container
+#(not in a volume) and it will use the private ip container address and not the public VPS address
+#If pi-hole is set as the DNS server (as with Wireguard clients), when asked to resolve pi-hole.linode.cloudnetworktesitng.com, if
+#there is no /etc/hosts volume from the /etc-hosts with public VPS, it will use its local /etc/hosts that has the private container
+#ip address. This will cause the wireguard clients to fail because the private address cannot be routed
+#With the volume /etc/hosts from the /etc-hosts with the public VPS ip address, it will not create its own /etc/hosts and this volume
+#/etc/hosts will be used to resolve pi-hole.linode.cloudnetworktesting.com to the proper public VPS ip address.
+#This will resolve as if it used the upstream name server (linode domain server). This is all so that we can use traefik to route
+#to the public ip address via HTTPS through the whitelist Wireguard. This won't work unless the public ip is used.
+
+### docker labels for traefik based routing:
+
+#The labels below will be used by traefik to route the incoming HTTPS443 packets to the pi-hole docker container based upon the 
+#Host header specified as Host below. Very similar as the file providers that were used for LXC containers iRedMail and zulip, 
+#except here the docker provider is used by traefik along with these labels, so there are no explicit config file provider files to
+#be added to ansible. It is all done on the fly for docker containers based upon the labes below.
+#The port 80 is the webserver port on the pi-hole docker container running the webadmin GUI.
+
+### /pi-hole/pi-hole/etc-hosts file in the ansible-playbook: 
+
+#The etc-hosts has a unique function in this setup: pi-hole container hostname set to same name as the A record that maps to the
+#public VPS ip adddress (in linode domains: pi-hole.linode.cloudnetworktesting.com) then there will be a problem
+#The docker container will assign the private docker container ip address 172.21.x.x to the hostname.
+#Need a custom /etc/hosts file mounted as a docker volume from the /etc-hosts on the container to specify the host to ip mapping 
+#using the public VPS address. If we do not create our own /etc/hosts then pi-hole will create its own /etc/hosts inside the container
+#(not in a volume) and it will use the private ip container address and not the public VPS address
+#If pi-hole is set as the DNS server (as with Wireguard clients), when asked to resolve pi-hole.linode.cloudnetworktesitng.com, if
+#there is no /etc/hosts volume from the /etc-hosts with public VPS, it will use its local /etc/hosts that has the private container
+#ip address. This will cause the wireguard clients to fail because the private address cannot be routed
+#With the volume /etc/hosts from the /etc-hosts with the public VPS ip address, it will not create its own /etc/hosts and this volume
+#/etc/hosts will be used to resolve pi-hole.linode.cloudnetworktesting.com to the proper public VPS ip address.
+#This will resolve as if it used the upstream name server (linode domain server). This is all so that we can use traefik to route
+#to the public ip address via HTTPS through the whitelist Wireguard. This won't work unless the public ip is used.
+
+### Traefik http router for pi-hole HTTP/HTTPS Web Admin traffic:
+
+Once the ansible playbook is executed a new HTTP router will be configured on Traefik (See Traefik web console through the Wireguard VPN)
+With this in place we can log into the p-hole Web Admin console. 
+The Upstream DNS servers should show the Cloudflare DNS server because that was configured through the ansible playbook.(.env file)
+
+from the docker-compose.yml file note the traefik http/https trafifc routing for Web Admin:
+#NOTE the port 80 in traefik labels below:
+#NOTE that there is no iptables rule for port 80. This is in the docker-compose.yml file for the pi-hole.  Traefik uses the labels # on the containers to route the traffic for docker containers for HTTP/HTTPS. The 53 DNS traffic for pi-hole on the other hand# needs the iptables nat rules to redirect from loopback to the docker container pi-hole private ip address.
+#But this port 80 is allowed through (initial pi-hole dashboard) and there is a redirection on the pi-hole nginx web server to redirect to port 443. Once the # redirect to 443 occurs the HTTP router for pi-hole then challenges the user for basic auth and routes the traffic to port 80 and container ip address of pi-hole based # upon the Host header in the 443 packet.. The 80 below is just for the initial hit to the pi-hole through Traefik. The redirection # is where the traefik HTTP router kicks in based upon the Host header.
+
+
+
+### Detailed packet flow of DNS requests with Wireguard clients configured to use pi-hole as DNS resolver:
+
+For testing the pi-hole as DNS resolver must do this on a Wireguard VPN client because regular clients will not use pi-hole as DNS resolver
+For example on EC2 controller metrics.icloud.com will show several answers to drill metrics.icloud.com
+Going onto to the Windows client without VPN up an nslookup on metrics.icloud.com will show the same.
+Next in the Wireguard configuration we set DNS=10.36.7.11 which is the VPS lookback. Recall that the loopback is how VPS routes traffic to the docker containers.  10.36.7.11 will only be reachable through the wireguard VPN.  There are iptables nat rules in the iptables configured on VPS so that the DNS traffic to 10.36.7.11 is routed to the pi-hole docker container.
+
+    3   156 DNAT       6    --  !br-3db65a09fb68 *       0.0.0.0/0            10.36.7.11           tcp dpt:53 to:172.21.1.3:53
+ 5407  447K DNAT       17   --  !br-3db65a09fb68 *       0.0.0.0/0            10.36.7.11           udp dpt:53 to:172.21.1.3:53
+    0     0 DNAT       17   --  !br-3db65a09fb68 *       0.0.0.0/0            10.36.7.11           udp dpt:67 to:172.21.1.3:67
+
+
+Once this is set up, running nslookup metrics.icloud.com on Windows10 client with VPN up will show 0.0.0.0, meaning the ads are effectively blocked
+
+
+Note the ip tables nat rules above. These were installed automatically by docker when the docker container was created. This is why docker containers are ideal for certain apps like pi-hole
+
+The Wireguard tunnels the inner packet with source 10.100.94.11 and dest 10.36.7.11 to the VPS. It is decapsulated and the 10.36.7.11 is then nat’ed to the pi-hole container ip address
+This is similar to the iRedMail rules above this which would route traffic from public VPS ip on those ports to the LXC container ip addres 10.100.100.11.
+
+
+
+
 
 
 
@@ -589,6 +723,33 @@ The users will be created as shown below on the VPS
 
 On traefik Web Admin there will be a new HTTP router for nextcloud
 On the traafik HTTP router in middleware in addtion to the ipallowlist (basic auth challenge) there is a redirect for CalDAV and CardDAV for other client integration with the nextcloud contacts and calendars.  I tried to get this to work on Windows10 and could not because it does not natively support nextcloud "other", but just the standards like google and icloud integration.  Mac has an "other" and one is able to share calendar and contacts in nextcloud with the calendar and contacts on Mac and viseversa.
+
+
+### Nextcloud docker container design:
+
+#since nextcloud is being created as a docker container, need to set labels so that traefik can route the HTTPS traffic coming into# public interface to the docker container ip address which is routed through the VPS loopback interface
+#Very similar to the pi-hole docker-compose.yml file, this will use .env file for the values of the variables below
+#The volume ./html/var/www/html must be created as noted in the nextcloud documentation
+#This container will also be a part of the docker network as well.
+#All environment vars are in the nextloud website user docs. We only need to set the database stuff
+#The db that is used will target the mariadb running on the VPS 
+#An alternative is to run a new mysql db inside the container, but alternatively the mariadb on host VPS can be accessed
+#by the nextcloud docker container via docker networking and this is the approach taken here.
+
+
+### Docker labels for traefik based routing:
+
+#For the labels the first 6 are similar to those used for the pi-hole container insofar as traefik is concerned. 
+#Traefik uses these labels to create the HTTP router that will route the traffic from the VPS public to the nextcloud
+#container ip address.
+#"traefik.http.routers.${service}.middlewares=${service}-allowlist,${service}-redirects,${service}-sts"
+#The line above adds the middleware but also configures redirects and sts, or strict transfer security header
+#The use of the redirects: for CalDAV and CarDAV to work we have to have the redirects configured as below:
+#"traefik.http.middlewares.${service}-redirects.redirectregex.permanent=true"
+#"traefik.http.middlewares.${service}-redirects.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+#For sts, this is not absolutely necessary but will remove a warning in the nextcloud admin console. The sts labels
+#are the last 3 lines in the labels section below   
+
 
 
 ### Nextcloud total packet flow using Traefik HTTP router (diagrams in word doc):
