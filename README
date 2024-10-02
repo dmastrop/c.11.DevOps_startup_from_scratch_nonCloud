@@ -322,7 +322,7 @@ Ran additional tests with inter-domain emails to gmail account (to and from) the
 ## Zulip collaboration:
 
 NOTE: can use the Windows10 client and iphone as wireguard clients to test this out.
-All traffic must be done on wireguard clients. The zulip.linode.cloudnetworktesting.com site is not reachable outside of the VPN tunnel
+All traffic must be done on wireguard clients. The zulip.linode.cloudnetworktesting.com site is not reachable outside of the VPN tunnel.  Iphone and window10 client both have wireguard client installed on them.
 
 
 
@@ -519,14 +519,151 @@ File provider needs to be added under traefik/traefik/configs/zulip.yml for the 
 
 ## NextCloud:
 
+Nextcloud will be deployed as another docker container (in addition to pi-hole, traefik, checkmk, etc) on the VPS
+
+First add the A record for nextcloud.linode.cloudnetworktesting.com to the linode Domains configuration.
+
+Ansible: The nextcloud/tasks/main.yml has the copy over to /root/services/nextcloud of the source code from the EC2 controller onto the VPS so that the docker container can be created.  Main.yml also has the backup scripts for the nextcloud docker container and this is configured as a cronjob
+
+[root@vps config]# crontab -l
+#Ansible: mariadb dump all databases
+01 3 * * * /root/scripts/mariadb-dump-all-databases.sh > /dev/null 2>&1
+#Ansible: lxc mail.linode.cloudnetworktesting.com backup
+01 1 * * * /root/scripts/lxc-backup-mail-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: lxc zulip.linode.cloudnetworktesting.com backup
+11 1 * * * /root/scripts/lxc-backup-zulip-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: backup pi-hole
+01 2 * * * /root/services/pi-hole/backup.sh > /dev/null 2>&1
+#Ansible: backup nextcloud
+06 2 * * * /root/services/nextcloud/backup.sh > /dev/null 2>&1
+#Ansible: nextcloud background jobs
+*/5 * * * * docker exec --user www-data nextcloud.linode.cloudnetworktesting.com php cron.php
+
+Since the nextcloud docker container is using the VPS mariadb the nextcloud/nextcloud/docker-compose.yml will have the mariadb nextcloud mysql user's name and password so that the container has access to the mariadb thorugh this nextcloud mariadb user.  Nextcloud uses the mariadb on the VPS host.  See implementation details in "Nextcloud total packet flow" below.
+
+In addition the docker-compose.yml will have all the necessary labels so that traefik can properly terminate and route the packets destined for the nextcloud docker container.
+
+The new mariadb user "nextcloud" is created by ansible in the mariadb role.   The users are added to the mariadb/tasks/users.yml file as shown below:
+
+- name: check for database user 'nextcloud@172.21.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: nextcloud
+    password: "{{ mariadb_nextcloud_password }}"
+    host: "172.21.%.%"
+    priv: 'nextcloud.*:ALL'
+    state: present
+  no_log: true
+
+
+All the passwords are encrypted with ansible-vault. All sensitive files are in .gitignore file and not present in the github repo. (mariadb/defaults/main.yml)
+
+The iptables in the ansible role security must be updated with the 3306 ip tables Allow rule as indicated above so that the nextcloud docker container can access mariadb on the VPS. This is done in security/files/iptables.rules
+
+The source subnets are based upon the /etc/docker/daemon.json on the VPS which has the 172 subnets that all docker containers will use by the docker engine on the VPS when creating docker containers. Thus the iptables must have rules to allow 3306 from any of these predefined docker private ip container address subnets.
+
+Prior to running the nextcloud role on ansible-playbook, run the mariadb and the security roles on ansible-playbook to update the mariadb and iptables with the above information.
+
+Note this will restart all docker containers and ip tables prior to running the nextcloud ansible role.
+
+The users will be created as shown below on the VPS
+[root@vps zulip.linode.cloudnetworktesting.com]# mariadb -e "select user,host from mysql.user;"
++---------------+-------------+
+| User          | Host        |
++---------------+-------------+
+| PUBLIC        |             |
+| backup_script | 10.100.94.% |
+| nextcloud     | 10.100.94.% |
+| nextcloud     | 172.21.%.%  |
+| nextcloud     | 172.22.%.%  |
+| nextcloud     | 172.23.%.%  |
+| nextcloud     | 172.24.%.%  |
+| nextcloud     | 172.25.%.%  |
+| backup_script | localhost   |
+| mariadb.sys   | localhost   |
+| mysql         | localhost   |
+| nextcloud     | localhost   |
+| root          | localhost   |
+
+
+On traefik Web Admin there will be a new HTTP router for nextcloud
+On the traafik HTTP router in middleware in addtion to the ipallowlist (basic auth challenge) there is a redirect for CalDAV and CardDAV for other client integration with the nextcloud contacts and calendars.  I tried to get this to work on Windows10 and could not because it does not natively support nextcloud "other", but just the standards like google and icloud integration.  Mac has an "other" and one is able to share calendar and contacts in nextcloud with the calendar and contacts on Mac and viseversa.
+
+
+### Nextcloud total packet flow using Traefik HTTP router (diagrams in word doc):
+
+Nextcloud uses the mariadb on the VPS host. To do this there must be iptables that allow 3306 from the docker container networks (172 networks)
+
+Nextcloud will route the packet out of the container to the VPS mariadb using the 10.36.7.11 loopback
+
+Iptables firewall rule will allow traffic from docker to the VPS
+
+The connection to 3306 mariadb on the VPS will be from one of the nextcloud configured users (all docker private subnets are added by the ansible playbook to mariadb so any nextcloud container will be able to connect to mariadb on 3306).
+
+From wireguard client to nextcloud.linode.cloudnetworktesting.com 
+First it needs to resolve it to an ip address.
+Pi-hole is the dns resolver for all these wireguard clients
+
+
+The ip address will resolve to the public ip of the VPS
+The public ip address in wireguard config is in the IP allowed list
+
+The route is through the VPN tunnel
+The packet is then forwarded through the tunnel. The inner packet is 443 and this is forwarded to the traefik TLS termination service on the VPS that has an HTTP router for routing the traffic to the nextcloud docker container based upon the docker labels in the docker-compose.yml for nextcloud
+
+
+Traefik routes based upon the Host header in the packet
+Traefik is a TLS termination point (certs are issued by letsencrypt) so traefik can look at the decrypted HTTP packet headers to do this routing.
+
+Traefik has an ip whitelist and the private ip client addreses assigned by the the VPN (to the Windows or Mac client) is in the whitelist so the packet can be routed through traefik. Before that basic authentication challenge to log in to the nextcloud docker container.
+
+
+### Nextcloud Web Admin GUI
+
+In the Web Admin GUI make sure to install all the default apps.
+When bringing this up the first time there are lot of errors and warnings. 
+The reverse proxy error and the HTTPS error can be addressed by adding code to the /root/services/nextcloud/config/config.php file (see word doc for details on this)
+
+For the maintenance window warning add this to the config.php file at the end:
+'maintenance_window_start' => 1,
+
+For the occ warning run this command in the VPS shell. It will add all the missing indices
+docker exec -it --user www-data nextcloud.linode.cloudnetworktesting.com php occ db:add-missing-indices
+
+Also the email needs to be configured on the nextcloud Admin so that nextcloud can send updates and admin information to the user.  Add the email to the account admin as well. 
+Also can add the iRedMail email info to share the iRedMail with the nextcloud mail app. Make sure to use StartTLS for both IMAP and SMTP and port 143 for the dovecot IMAP
+
+
+
 ## checkmd:
 
 ## Borg and borgmatic:
 
-## Gitlab and the Gitlab runner
+## Gitlab and the Gitlab runner:
 
 
 ## Python backup-checker:
+
+
+
+
+
+## NOTES on cerbot TLS certs and letsencrypt certs on Traefik reverse proxy:
+
+Traefik HTTPS letsencrypt certs:
+Note that for native traffic (mail protocol) the certbot generates the TLS cert
+The traefik is only used for HTTP/HTTPS (Web Admin stuff)
+The certs are all in the /root/services/traefik/************ file
+These certs are public and private key pairs
+
+-Private key for letsencrypt itself
+-Traefik keys
+-Zulip keys
+-iRedMail keys (only for HTTPS not for mail traffic, that uses certbot)
+-pi-hole keys
+-nextcloud keys
+-etc.....
 
 
 
