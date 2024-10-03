@@ -324,6 +324,23 @@ Ran additional tests with inter-domain emails to gmail account (to and from) the
 NOTE: can use the Windows10 client and iphone as wireguard clients to test this out.
 All traffic must be done on wireguard clients. The zulip.linode.cloudnetworktesting.com site is not reachable outside of the VPN tunnel.  Iphone and window10 client both have wireguard client installed on them.
 
+Zulip is installed as an LXC linux container and not a docker container. See the notes above on the LXC container architecture and design for this project, including the networking considerations. Of note is that the LXC containers use the bridge interface br0 on the VPS rather than the loopback ip address for routing betweeen the LXC containers and the VPS host.  (The docker containers use the loopback ip address on the VPS)
+
+The installation and design for teh Zulip is very similar to iRedMail given that both use LXC containers for deployment. Both iRedMail and Zulip have container addresses on the private interface address 10.100.100.x/24. The installation directories for both of these containers is in the /root/lxc folder. Each container has its own dedicated folder (FQDN of the container). lxc-create command is used to create the container.
+
+Once the ip address is assigned, the lxc-start starts the container. The lxc-attach is required as some of the configuration (as in iRedMail) needs to be done in the container itself.   The DNS configuration, as with iRedMail, is done manually. (not done through ansible).  LXC containers ar difficult to fully automate, unlike docker containers.
+
+For this zulip installation the OS of the LXC container needs to be upgraded.  openssh-server needs to be installed as well.  With the DNS set up we will be able to ssh into the LXC container directly from the EC2 controller using the ProxyJump command in the ~/.ssh/config file on the LXC container. Similar to what we did for iRedMail.  The proxy in this cases is the VPS. So EC2 controller to proxy VPS to the LXC container on the VPS.   (See the secction on ssh configuration in the notes.txt file on the EC2 controller and local VSCode repo.  It is not  pushed to github for security reasons).
+
+The backup script to /mnt/storage and the cronjob are set up in the ansbile playbook zulip role much in the same manner that was used for iRedMail. The shell script is esssentially the same.
+
+Now that the ansible scripts are done, the installation of zulip must be manual. We have ssh directly to the LXC set up, so this can be done easily.  
+
+NOTE: at this stage in the project we do not have Traefik docker container up (with nginx) so there is no https daemon running on the VPS itself. But zulip service has a bundled http server in it. For now, with Wireguard VPN point the FQDN for zulip to the private LXC container ip adddress to bring up the Web Admin console so that we can continue configuration of the zulip server.  We did the same for iRedMail Web Admin console. However, with zulip there is Host header checking so the /etc/hosts file on the Windows Wireguard VPN client needs to temporarily point to the private ip for the FQDN of zulip.
+
+The email admin and notifications needs to be set up: one for the zulip administrator and one for no-reply. See the word doc for specifics on the configuration for this and the changes required in settings.py  There are also changes on the iredmail LXC container conifguration that need to be made for zulip emails so that iredmail can receive emails from no-reply emails from zulip.
+
+
 
 
 
@@ -807,6 +824,22 @@ Will have to downgrade to a 28 version for now until it is patched. The process 
 
 
 ## checkmd:
+
+
+
+### Docker container design for checkmk service and mailer service (smtp relay service):
+
+
+### Docker labels for Traefik based routing for the checkmk docker service:
+
+
+
+
+
+
+
+
+
 
 ## Borg and borgmatic:
 
