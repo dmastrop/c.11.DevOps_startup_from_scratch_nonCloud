@@ -3,8 +3,9 @@
 # For the volumes, the /etc/localtime on VPS is mapped to /etc/localtime on the container to match the timezones
 # For the second volume ./sites is /root/services/checkmk/sites on VPS to /omd/sites to persist the data the checkmk creates on the container
 # The MAIL_RELAY_HOST is section 2.4 in checkmk docker documumentation link: sending notifications
+# https://docs.checkmk.com/latest/en/managing_docker.html
 # the host in the container cannot send mail directly but has to send to an smtp relay server (smarthost)
-# which is this mailer (second service name below), which will then forward to iRedMai LXC container mail server
+# which is this mailer docker service (second service name below), which will then forward to iRedMai LXC container mail server
 # The labels for checkmk are for the traefik http/https router as was done for the other container. Letsencrypt TLS cert will be
 # used for the HTTPS termination.
 # Note that in the labels, the webserver on checkmk listens on port 5000
@@ -51,8 +52,9 @@ services:
   # The mailer service (smtp relay on the checkmk docker container) is below
   #  The mailer will use the .env variables below. Checkmk mail will go to this mailer and the mailer will then
   #  relay the mail to our LXC mail container on the VPS and the mail will then reach its final destination
-  #  Note that both mailer and checkmk services are part of the same docker network web
-  mailer:
+  #  Note that both mailer and checkmk services are part of the same docker network web so they can innately communicate
+  #  with one another.
+ mailer:
     image: namshi/smtp
     container_name: mailer
     hostname: ${mailer_hostname}
