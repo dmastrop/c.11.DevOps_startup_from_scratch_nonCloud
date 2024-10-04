@@ -2,14 +2,14 @@
   roles:
     # - hostname
     #- essentials
-    - security
+    #- security
     #- sysctl
     #- certbot
     #- wireguard
     #- docker
     #- mariadb
     #- lxc
-    #- traefik
+    - traefik
     #- pi-hole
     #- nextcloud
     - checkmk
