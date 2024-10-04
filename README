@@ -825,14 +825,39 @@ Will have to downgrade to a 28 version for now until it is patched. The process 
 
 ## checkmd:
 
+### Notes on the shell scripts used for this docker container and operational deployment of host/agent:
 
+The setup_host_non_REST_API.sh is used if adding the agent/host to checkmk with Web Admin GUI. .  This script just puts the 3 agent files in the following directories on the VPS: /etc/systemd/system and /usr/bin. These are agent files 
+
+The setup_host.sh is used if adding the agent/host to checkmk with the REST API. This has an additional 3 lines to copy over the following files to the VPS:
+add_host.sh and .env to the /root/services/checkmk/agent directory. The agent directory is a new directory created on the VPS for this REST API host adding.
+The last line in this file also runs the add_host.sh which invokes the REST API to add the VPS host to checkmk. NOTE: the add_host.sh is run from the VPS itself after it has been copied to the VPS with the setup_host.sh. Because of this the VPS public ip needs to be added to the checkmk middleware (traefik) ip_allowlist whitelist. The REST API packets are https packets so they are sent to traefik and as such they have to be whitelisted to be reverse proxied to the checkmk docker container.
 
 ### Docker container design for checkmk service and mailer service (smtp relay service):
 
+ ### NOTES:
+#2 services on this docker compose: checkmk and mailer
+#For checkmk, tmpfs is suggested in checkmk docs for better performance
+#For the volumes, the /etc/localtime on VPS is mapped to /etc/localtime on the container to match the timezones
+#For the second volume ./sites is /root/services/checkmk/sites on VPS to /omd/sites to persist the data the checkmk creates on the container
+#The MAIL_RELAY_HOST is section 2.4 in checkmk docker documumentation link: sending notifications
+#https://docs.checkmk.com/latest/en/managing_docker.html
+#the host in the container cannot send mail directly but has to send to an smtp relay server (smarthost)
+#which is this mailer docker service (second service name below), which will then forward to iRedMai LXC container mail server
+#The labels for checkmk are for the traefik http/https router as was done for the other container. Letsencrypt TLS cert will be
+#used for the HTTPS termination.
+#Note that in the labels, the webserver on checkmk listens on port 5000  
+
+#Mailer service notes:
+  #The mailer service (smtp relay on the checkmk docker container) is below
+  #The mailer will use the .env variables below. Checkmk mail will go to this mailer and the mailer will then
+  #relay the mail to our LXC mail container on the VPS and the mail will then reach its final destination
+  #Note that both mailer and checkmk services are part of the same docker network web so they can innately communicate
+  #with one another.    
 
 ### Docker labels for Traefik based routing for the checkmk docker service:
 
-
+The labels are similar to the other traefik based labels for the docker containers in this project. Note that the http daemon for checkmd is running on 5000 and also note that middleware ip_allow list is enforced. To disable the whitelist simply comment out the last 2 lines of the lables. This is not recommended. All traffic will be passed through to the container through the public URL for checkmd.   Letsencrypt certs are used as with all the other docker containers running HTTP/HTTPS.
 
 
 
