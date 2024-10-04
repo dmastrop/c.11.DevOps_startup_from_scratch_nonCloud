@@ -1,0 +1,22 @@
+(environment3) ubuntu@ip-172-31-21-52:~/course11_devops_startup/ansible/checkmk/agent$ ls -la
+total 372
+drwxrwxr-x 3 ubuntu ubuntu   4096 Oct  4 23:24 .
+drwxrwxr-x 5 ubuntu ubuntu   4096 Oct  1 00:39 ..
+-rw-rw-r-- 1 ubuntu ubuntu    127 Oct  4 22:05 .env
+-rw------- 1 ubuntu ubuntu  12288 Oct  4 23:24 .script_notes.txt.swp
+-rwxrwxr-x 1 ubuntu ubuntu   1866 Oct  4 21:59 add_host.sh
+-rwxrwxr-x 1 ubuntu ubuntu    559 Oct  4 00:02 check-mk-agent.socket
+-rwxrwxr-x 1 ubuntu ubuntu    354 Oct  4 00:02 check-mk-agent@.service
+-rwxrwxr-x 1 ubuntu ubuntu  76972 Oct  4 00:02 check_mk_agent
+-rw-rw-r-- 1 ubuntu ubuntu 252578 Oct  3 23:28 index.html
+-rwxrwxr-x 1 ubuntu ubuntu    658 Oct  4 22:17 setup_host.sh
+-rwxrwxr-x 1 ubuntu ubuntu    477 Oct  4 22:13 setup_host_non_REST_API.sh
+drwxrwxr-x 2 ubuntu ubuntu   4096 Oct  4 18:02 test_wget_allowlist_EC2
+
+
+The setup_host_non_REST_API.sh is used if adding the agent/host to checkmk with Web Admin GUI. .  This script just puts the 3 agent files in the following directories on the VPS: /etc/systemd/system and /usr/bin. These are agent files 
+
+The setup_host.sh is used if adding the agent/host to checkmk with the REST API. This has an additional 3 lines to copy over the following files to the VPS:
+add_host.sh and .env to the /root/services/checkmk/agent directory. The agent directory is a new directory created on the VPS for this REST API host adding.
+The last line in this file also runs the add_host.sh which invokes the REST API to add the VPS host to checkmk. NOTE: the add_host.sh is run from the VPS itself after it has been copied to the VPS with the setup_host.sh. Because of this the VPS public ip needs to be added to the checkmk middleware (traefik) ip_allowlist whitelist. The REST API packets are https packets so they are sent to traefik and as such they have to be whitelisted to be reverse proxied to the checkmk docker container.
+
