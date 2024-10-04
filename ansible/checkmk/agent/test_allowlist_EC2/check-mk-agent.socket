@@ -1,0 +1,12 @@
+[Unit]
+Description=Local Checkmk agent socket
+Documentation=https://docs.checkmk.com/latest/en/agent_linux.html
+
+[Socket]
+ListenStream=/run/check-mk-agent.socket
+SocketUser=cmk-agent
+SocketMode=0240
+Accept=true
+
+[Install]
+WantedBy=sockets.target
