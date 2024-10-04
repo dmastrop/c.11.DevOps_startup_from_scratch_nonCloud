@@ -12,8 +12,9 @@ script_dir=$(dirname "$(readlink -f "$0")")
 
 scp ${script_dir}/check_mk_agent $1:/usr/bin/check_mk_agent
 scp ${script_dir}/check-mk-agent@.service ${script_dir}/check-mk-agent.socket $1:/etc/systemd/system/
+ssh $1 "systemctl daemon-reload"  
 
-ssh $1 "systemctl start check-mk-agent.socket && systemctl enable check-mk-agent.socket"
+ssh $1 "systemctl restart check-mk-agent.socket && systemctl enable check-mk-agent.socket"
 
 ssh $1 "mkdir -p /root/services/checkmk/agent/"
 scp ${script_dir}/add_host.sh ${script_dir}/.env $1:/root/services/checkmk/agent/
