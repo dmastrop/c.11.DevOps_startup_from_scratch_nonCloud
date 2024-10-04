@@ -69,6 +69,16 @@ COMMIT
 -A INPUT -s 172.23.0.0/16 -p tcp --dport 3306 -j ACCEPT
 -A INPUT -s 172.24.0.0/16 -p tcp --dport 3306 -j ACCEPT
 -A INPUT -s 172.25.0.0/16 -p tcp --dport 3306 -j ACCEPT
+
+# these next 5 rules are so that the checkmk docker container server can connect to the agent on the VPS which is listening on 6556
+# The objective is to have checkmk monitoring the VPS. Since checkmk is on a docker container this is required to connect to the 
+# host VPS vps.linode.cloudnetworktesting.com
+-A INPUT -s 172.21.0.0/16 -p tcp --dport 6556 -j ACCEPT
+-A INPUT -s 172.22.0.0/16 -p tcp --dport 6556 -j ACCEPT
+-A INPUT -s 172.23.0.0/16 -p tcp --dport 6556 -j ACCEPT
+-A INPUT -s 172.24.0.0/16 -p tcp --dport 6556 -j ACCEPT
+-A INPUT -s 172.25.0.0/16 -p tcp --dport 6556 -j ACCEPT
+
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -p tcp -j REJECT --reject-with tcp-reset
 -A INPUT -p udp -j REJECT --reject-with icmp-port-unreachable
