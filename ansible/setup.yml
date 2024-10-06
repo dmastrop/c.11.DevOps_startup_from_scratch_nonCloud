@@ -9,7 +9,7 @@
     #- docker
     #- mariadb
     #- lxc
-    - traefik
+    #- traefik
     #- pi-hole
     #- nextcloud
     - checkmk
