@@ -1,6 +1,6 @@
 - hosts: main
   roles:
-     - hostname
+    - hostname
     - essentials
     - security
     - sysctl

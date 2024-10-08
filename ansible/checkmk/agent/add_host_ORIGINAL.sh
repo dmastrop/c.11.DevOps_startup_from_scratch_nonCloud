@@ -40,15 +40,6 @@ curl \
     }' \
 	"${checkmk_api_url}"/domain-types/service_discovery_run/actions/start/invoke
 
-
-
-
-
-# Add sleep 3 before the activation. There seems to ba an issue only when running script. When running 
-# 3 curls manually it works fine, but when running script only 3 services come up and Check_MK fails
-# 3 still intermittently fails. Need 10 seconds to consistently work.
-sleep 10
-
 # Activate changes
 # the If-Match as indicated or put in Etag for the value as indicated here:
 # https://docs.checkmk.com/latest/en/rest_api.html#restapi_show_a_host
