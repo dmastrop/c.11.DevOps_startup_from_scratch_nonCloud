@@ -825,18 +825,78 @@ Will have to downgrade to a 28 version for now until it is patched. The process 
 
 ## checkmd:
 
-### Notes on the shell scripts used for this docker container and operational deployment of host/agent:
+### The 3 agent files and adding EC2 public ip to the traefik whitelist for checkmk:
+
+IMPORTANT NOTE: checkmk requires 3 agent components and these can be downloaded from the Web Admin console above
+The URL is from the Web UI Console and wget can be performed on the ansible controller to get the file
+The file is being downloaded from the checkmk docker container.
+
+In order to get access to the docker container URL to download these 3 agent files, one must be either on a Wireguard client
+(the middleware on checkpoint traefik allows 10.100.94.x wireguard client ips) 
+OR one must add the public IP of the address of the ansible controller. In my case this is an EC2 controller that does not have wireguard installed.
+Add that public EC2 IP address to the ip_allowlist for traefik label whitelist for the checkmk container in the .env file
+      - "traefik.http.middlewares.${service}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+
+
+
+
+
+### S3 bucket (optional):
+
+I have added access to an S3 bucket for the EC2 ansible controller for any files that are not easily able to be downloaded to the EC2 controller. Did not have to use this here but this is good to have.
+Ensure that the aws cli on the ansible controller is set to the proper profile
+aws configure
+aws configure list
+export AWS_PROFILE=
+~/.aws/config and ~/.aws/credentials
+
+
+
+### Notes on the shell scripts used for this docker container and operational deployment of host/agent and adding the VPS public ip to the traefik whitelist for checkmk for the REST API packets from VPS to checkmk docker container:
 
 The setup_host_non_REST_API.sh is used if adding the agent/host to checkmk with Web Admin GUI. .  This script just puts the 3 agent files in the following directories on the VPS: /etc/systemd/system and /usr/bin. These are agent files 
 
 The setup_host.sh is used if adding the agent/host to checkmk with the REST API. This has an additional 3 lines to copy over the following files to the VPS:
 add_host.sh and .env to the /root/services/checkmk/agent directory. The agent directory is a new directory created on the VPS for this REST API host adding.
-The last line in this file also runs the add_host.sh which invokes the REST API to add the VPS host to checkmk. NOTE: the add_host.sh is run from the VPS itself after it has been copied to the VPS with the setup_host.sh. Because of this the VPS public ip needs to be added to the checkmk middleware (traefik) ip_allowlist whitelist. The REST API packets are https packets so they are sent to traefik and as such they have to be whitelisted to be reverse proxied to the checkmk docker container.
+The last line in this file also runs the add_host.sh which invokes the REST API to add the VPS host to checkmk. 
+
+NOTE: the add_host.sh is run from the VPS itself after it has been copied to the VPS with the setup_host.sh. Because of this the VPS public ip needs to be added to the checkmk middleware (traefik) ip_allowlist whitelist. The REST API packets are https packets so they are sent to traefik and as such they have to be whitelisted to be reverse proxied to the checkmk docker container.
+
+
+The setup_host.sh needs to be run from the ansible controller. The syntax is:
+./setup_host.sh linode.********.com
+This will place the 3 agent files onto the VPS and place the add_host.sh on the VPS and then execute the add_host.sh on the VPS
+
+The add_host.sh will sequentially execute the 3 curl REST API actions to create the host on the checkmk and then service discovery and then apply service discovery to the host on the Web Admin console.
+
+There was an issue between the second curl REST API invocation and the third curl REST API invocation due to the service discovery not being complete prior to the apply (the third curl REST API).  Adding a sleep of 10 seconds between second and third curl resolved the issue.
+
+See the notes.txt  for more detail on the script and the exact nature of the fix.
+
+
+
+### Important note on iptables configuration:
+
+In order for the docker checkmk container on the VPS to monitor the VPS host itself we need to add iptables rules for allowing traffic from docker container networks (172 nets) where checkmk docker container is running to the VPS host on port 6556 (the agent listening port), the checkmk protocol service port.
+
+This can be effectively tested with the nsenter command and telnet from the VPS since the checkmk container does not have telnet installed. See notes.txt file for extensive details on how to do this.
+
+The command is below to be run on the VPS itself:
+nsenter -t $(docker inspect --format {{.State.Pid}} checkmk.linode.*********.com) -n telnet vps.linode.******************.com 6556
+
+This cmmand gets the docker pid and runs a docker inspect on the container of that pid (checkmk docker container) and then initiates a telnet FROM the docker container to the host (VPS) by utlizing the telnet command binary on the VPS itself, to port 6556
+
+This will fail prior to the iptables urles being added and will work once the iptables rules are added. See notes.txt for the exact rules and implementation details.
+
+
+In short all the docker 172 container nets need to be allowed to the VPS public ip on port 6556
 
 ### Docker container design for checkmk service and mailer service (smtp relay service):
 
- ### NOTES:
+The checkmk setup consists of 2 containers: one for checkmk server and the other for an smtp relay using iRedMail as desitination. The udpates are important becuase checkmk as a monitoring tool requires a lot of updates.  It works very well during testing.
+
 #2 services on this docker compose: checkmk and mailer
+
 #For checkmk, tmpfs is suggested in checkmk docs for better performance
 #For the volumes, the /etc/localtime on VPS is mapped to /etc/localtime on the container to match the timezones
 #For the second volume ./sites is /root/services/checkmk/sites on VPS to /omd/sites to persist the data the checkmk creates on the container
@@ -867,6 +927,31 @@ The labels are similar to the other traefik based labels for the docker containe
 
 
 ## Borg and borgmatic:
+
+Borg is just installed as a server/service on the VPS.  It is not deployed as a separate container.
+Borg needs to be installed on both the source (what is being backed up, in this case the VPS) and the destination repository (in this case we are using the block storage volumne for our linode VPS at /mnt/storage and borg backups will be made to /nnt/storage/backups/borg directory)
+
+As such, there are only tasks and files and not a borg/borg directory with a docker-compose.yml file
+
+In the tasks the main.yml will install borg, borgmatic and python-llfuse packages to the archlinux VPS using pacman ansible module. Python-llfuse is required to mount the backups to our local file system at /mnt/storage
+
+The tasks will create the borgmatic directory at /etc/borgmatic. Ansible copies all of the shell scirpts the config.yaml and the .env.  Borgmatic is an API hook command application to make borg backup administration much more finer tuned and detailed. We can run some tests with this.
+
+Prior to this, make the first backup. NOTE the backups will be added to the cronjobs and done daily thereafter.  First the backups directory must be initialized. Once intialized the first backup will be done manually so that we can run some tests with it.
+
+We will use borgmatic to do some intentional file deletion and restore tests using the following commands:
+
+borgmatic extract --archive latest --path usr/bin/chmod
+and method 2 a mount: borgmatic mount --archive latest --mount-point /mnt/borg --path usr/bin
+
+
+
+
+
+
+
+
+
 
 ## Gitlab and the Gitlab runner:
 
