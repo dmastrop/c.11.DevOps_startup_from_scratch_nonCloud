@@ -1,0 +1,96 @@
+services:
+# The ports 44822:22 is for the ssh port to git repository (for example git clone using ssh rather than https)
+# Packet routing details are in the notes.txt and README files. Packet routing for the HTTP/HTTPS gitlab is different from
+# the packet routing for the ssh traffic to gitlab (for example git clone git@gitlab.linode.cloudnetworktesting.com)
+# Traefik handles the HTTP/HTTPS but for SSH we have to map the port as below ourselves 44822:22 44822 is incoming and needs to be
+# mapped to 22 on the container itself.
+# The volumes has the directories that we need to persist even after the containers are removed.
+# the first 3 volumes are from the documentation
+# the fourth is to save the tar archive directly on the VPS
+# LABELS: This line is the port that the nginx is listening on in the gitlab container
+# - "traefik.http.services.${service_gitlab}.loadbalancer.server.port=80"
+# For LABELS docker registry: registry is listening on port 5050
+# Traefik needs to handle 2 servcies for this setup: one is service_gitlab and the other service_registry for the image/docker registry
+# The ip whitelist subnets will be the same.
+# /etc/gitlab.rb is the main configuration file
+# This can be modified on an runing gitlab instance and gitlab reloaded and then they will take effect
+# Here we will deploy the container with all of these settings already done, via the enviroment section below
+# NOTE that the smtp configuration is here. It will use the existing iRedMail lxc container on the VPS
+# worker processes based upon th cpu cores and prometheus will be disabled because it is resource intensive.
+# nginx configuration follows: we only want to listen on port 80
+# This is because the TLS cert for gitlab container is done by traefik via letsencrypt
+# trusted_subnets are docker subnets
+# nginx['real_ip_header'] = 'X-Forwarded-For' This is so that we see the real ip of the client in the logs and not the ip of
+# traefik since traefik is reverse procying the connection along the way.
+# Otherwise we will see the private ip of traefik 172 address in the gitlab access logs.
+# Gitlab private docker images registry to store the docker images     registry_external_url "${gitlab_registry_url}"
+# This is that port 5050 in the container.  
+  gitlab:
+    container_name: ${container_name}
+    hostname: ${hostname_gitlab}
+    image: ${docker_image}:${docker_image_tag}
+    restart: unless-stopped
+    ports:
+      - "44822:22"
+    volumes:
+      - ./config:/etc/gitlab
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+      - ${backups_directory_secrets}:/secret/gitlab/backups
+    networks:
+      - web
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.${service_gitlab}.rule=Host(`${hostname_gitlab}`)"
+      - "traefik.http.routers.${service_gitlab}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service_gitlab}.entrypoints=https"
+      - "traefik.http.routers.${service_gitlab}.service=${service_gitlab}"
+      - "traefik.http.services.${service_gitlab}.loadbalancer.server.port=80"
+      - "traefik.http.routers.${service_gitlab}.middlewares=${service_gitlab}-allowlist"
+      - "traefik.http.middlewares.${service_gitlab}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+      # docker-registry
+      - "traefik.http.routers.${service_registry}.rule=Host(`${hostname_registry}`)"
+      - "traefik.http.routers.${service_registry}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service_registry}.entrypoints=https"
+      - "traefik.http.routers.${service_registry}.service=${service_registry}"
+      - "traefik.http.services.${service_registry}.loadbalancer.server.port=5050"
+      - "traefik.http.routers.${service_registry}.middlewares=${service_registry}-allowlist"
+      - "traefik.http.middlewares.${service_registry}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url "${gitlab_external_url}"
+        gitlab_rails['initial_root_password'] = "${initial_root_password}"
+        gitlab_rails['lfs_enabled'] = true
+        gitlab_rails['smtp_enable'] = true
+        gitlab_rails['smtp_address'] = "${smtp_address}"
+        gitlab_rails['smtp_port'] = "${smtp_port}"
+        gitlab_rails['smtp_user_name'] = "${smtp_username}"
+        gitlab_rails['smtp_password'] = "${smtp_password}"
+        gitlab_rails['smtp_domain'] = "${smtp_domain}"
+        gitlab_rails['smtp_authentication'] = "plain"
+        gitlab_rails['smtp_enable_starttls_auto'] = true
+        gitlab_rails['smtp_tls'] = false
+        puma['worker_processes'] = 4
+        prometheus_monitoring['enable'] = false
+        nginx['redirect_http_to_https'] = false
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['client_max_body_size'] = "2G"
+        nginx['real_ip_trusted_addresses'] = ${trusted_subnets}
+        nginx['real_ip_header'] = 'X-Forwarded-For'
+        nginx['real_ip_recursive'] = 'on'
+        registry['enable'] = true
+        registry_external_url "${gitlab_registry_url}"
+        registry_nginx['listen_port'] = 5050
+        registry_nginx['listen_https'] = false
+
+networks:
+  web:
+    external: true

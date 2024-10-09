@@ -1,6 +1,6 @@
 - hosts: main
   roles:
-    # - hostname
+    #- hostname
     #- essentials
     #- security
     #- sysctl
@@ -12,5 +12,6 @@
     #- traefik
     #- pi-hole
     #- nextcloud
-    - checkmk
-    - borg
+    #- checkmk
+    #- borg
+    - gitlab

@@ -1,0 +1,49 @@
+- name: services directory
+  ansible.builtin.file:
+    path: /root/services/
+    state: directory
+    mode: '700'
+
+- name: copy
+  ansible.builtin.copy:
+    src: gitlab
+    dest: /root/services/
+    owner: root
+    group: root
+    mode: '700'
+
+
+# The app and secrets directories: These wll be used for the backups of the gitlab container
+# 998 user and group
+# The user inside of the container, user git, is the one that needs write (755) access to this directory
+# The container user git has the userid of 998 and group id 998. That is why this one is different from the others
+# designated as root
+- name: backups directory 'app'
+  ansible.builtin.file:
+    path: /mnt/storage/backups/gitlab/app
+    owner: 998
+    group: 998
+    mode: '755'
+    state: directory
+
+- name: backups directory 'secrets'
+  ansible.builtin.file:
+    path: /mnt/storage/backups/gitlab/secrets
+    owner: root
+    group: root
+    mode: '700'
+    state: directory
+
+# Install the gitlab docker container on the VPS with the docker-compose file
+# Temporarily bring down docker container until upgrade the VPS
+- name: run gitlab
+  ansible.builtin.shell: "cd /root/services/gitlab && docker-compose down && docker-compose up -d"
+  #ansible.builtin.shell: "cd /root/services/gitlab && docker-compose down"
+
+- name: add gitlab backup script to crontab
+  ansible.builtin.cron:
+    name: backup gitlab
+    minute: "16"
+    hour: "2"
+    user: root
+    job: "/root/services/gitlab/backup.sh > /dev/null 2>&1"
