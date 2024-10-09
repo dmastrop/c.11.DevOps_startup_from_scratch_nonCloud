@@ -966,7 +966,14 @@ EC2 controller will have ssh remote aorigin configured to gitlab for active proj
 Local Mac  VSCode will have https remote to github for local backup of the all of the github/gitlab development projects
 
 
-## Python backup-checker:
+## Python backup-checker application (source code) deployment with gitlab:
+
+
+
+
+## extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
+
+The VPS gitlab environment will run the pipeline against an EKS cluster in AWS using helm.
 
 
 
