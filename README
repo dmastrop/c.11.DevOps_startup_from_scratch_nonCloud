@@ -966,6 +966,11 @@ EC2 controller will have ssh remote aorigin configured to gitlab for active proj
 Local Mac  VSCode will have https remote to github for local backup of the all of the github/gitlab development projects
 
 
+### Introduction:
+
+When configuring this make sure that the VPS ip address is included in the ip_allowlist (whitelist) for traefik for the gitlab container.   This is because the gitlab-runner is running on VPS as well and the source of the packet when it registers with gitlab docker container is the VPS public ip address. Otherwise the gitlab-runner registration will fail.
+
+
 ## Python backup-checker application (source code) deployment with gitlab:
 
 
