@@ -955,6 +955,16 @@ and method 2 a mount: borgmatic mount --archive latest --mount-point /mnt/borg -
 
 ## Gitlab and the Gitlab runner:
 
+### repository design
+
+Create a new main directory for all of the gitlab projects on the EC2 controller
+
+EC2 controller will have https remote c11github configured to github for backup of gitlab repo
+
+EC2 controller will have ssh remote aorigin configured to gitlab for active project pipeline code development and testing 
+
+Local Mac  VSCode will have https remote to github for local backup of the all of the github/gitlab development projects
+
 
 ## Python backup-checker:
 
