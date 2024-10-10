@@ -953,27 +953,203 @@ and method 2 a mount: borgmatic mount --archive latest --mount-point /mnt/borg -
 
 
 
+
+
+
 ## Gitlab and the Gitlab runner:
 
 ### repository design
 
+NOTE: this repository is distinct from the repo used for the ansible playbook infra code. The ansible code is only backed up to github and has nothing to do with gitlab.
+
+
 Create a new main directory for all of the gitlab projects on the EC2 controller
 
-EC2 controller will have https remote c11github configured to github for backup of gitlab repo
+EC2 controller will have https remote origin2 configured to github for backup of gitlab repo
 
-EC2 controller will have ssh remote aorigin configured to gitlab for active project pipeline code development and testing 
+EC2 controller will have ssh remote origin configured to gitlab for active project pipeline code development and testing 
 
-Local Mac  VSCode will have https remote to github for local backup of the all of the github/gitlab development projects
+Local Mac  VSCode will have https remote origin to github for local backup of the all of the github/gitlab development projects (do a git pull from github once each commit from EC2 is complete
+
+The .gitignore will drop the .env file. The .env file although present on the EC2 controller repo is  not used and is not pushed to gitlab or github repos for security reasons. The .env variables are added to the project settings Variables in gitlab Admin Console itself.
 
 
 ### Introduction:
 
 When configuring this make sure that the VPS ip address is included in the ip_allowlist (whitelist) for traefik for the gitlab container.   This is because the gitlab-runner is running on VPS as well and the source of the packet when it registers with gitlab docker container is the VPS public ip address. Otherwise the gitlab-runner registration will fail.
 
+NOTE the gitlab-runner can be installed on a standalone separate VPS server if throughput transactions need to be scaled up.
+
+
+
+### detailed packet flow for gitlab docker container itself: 
+
+NOTE: for details of specific iptables rules etc. see notes.txt file.
+The network diagrams are in the Word doc.
+
+NOTE: give that gitlab is essentially a repository driven based CI/CD tool, we must consider both HTTP/HTTPS packet flow and SSH packet flow analysis
+
+NOTE: this analysis is not for the deployment of an application packet flow. That analysis follows in the next section
+
+#### HTTP/HTTPS:
+
+When connecting to gitlab.linode.*****.com or when doing a git clone https://.... for example then this packet flow will kick in.
+
+Traefik’s labels (NOT gitlab container traefik labels) are below. Note the 80 is immediately redirected by the traefik middleware.
+
+
+   labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${service}.rule=Host(`${hostname}`)"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.redirects.rule=hostregexp(`.+`)"
+      - "traefik.http.routers.redirects.entrypoints=http"
+      - "traefik.http.routers.redirects.middlewares=redirect-to-https"
+      - "traefik.http.routers.${service}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service}.service=api@internal"
+      - "traefik.http.routers.${service}.middlewares=${service}-allowlist,${service}-auth"
+      - "traefik.http.middlewares.${service}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+      - "traefik.http.middlewares.${service}-auth.basicauth.users=${traefik_dashboard_username}:${traefik_dashboard_password}"
+
+So ultimately the packet is a 443 packet.
+
+The 443 packet ends up on public VPS interface and the ports are mapped to  traefik container ip  80:80 and 443:443 by the firewall.
+The iptables NAT is first
+The destination ip is mapped from public IP to the container ip address of traefik 
+
+NOTE: the docker container ip addresses will change each time ansible-playbook reintializes and installs new containers. The private ip address container ips are NOT static. They are, however from a select group of private 172 subnets.....
+
+After the iptables NAT (iptables -t nat -nvL) processes the packet::  Then firewall (iptables -nvL) DOCKER chain will then forward the packets to traefik container on that port given dest ip is the traefik container private ip address. The traffic will be ACCEPTED by this stage of the firewall
+(see notes.txt for dump of the actual firewaall rules)
+
+Traefik sees the Host header as gitlab.linode.************.com and forwards the packet to the gitlab container via its HTTP router. 
+This is where the gitlab docker-compose traefik labels of the gitlab container (not traefik container) are applied. There is middleware for an auth challenge so a login will be required.
+
+Ngnix running inside the gitlab container actually serves the web content to the browser.
+
+
+
+
+#### For SSH:
+
+As noted above, for SSH repo operatoins involving the gitlab repo (project), for example a git clone git@gitlab.linode.********.com
+
+By default 22 is used but there is an entry added to change this to a high numbered port in ~/.ssh/config file  of the EC2 controller. (note per the repository design section above, only the EC2 controller will be interacting with gitlab repo (and also github repo). The Mac local VSCode repo will only interact with github and that runs on standard 22 to github)
+
+The container is configured with <high_numbered_port>:22 in its ports: in docker-compose.yml file so the packet will reach the running container gitlab application ultimately on 22
+
+
+Docker will make the high numbered port on VPS to 22 on the gitlab docker container itself in the iptables NAT firewall rules. There will be a NAT for dest port high numbered port to the gitlab container ip on port 22
+
+Then the port 22 traffic is ALLOWED per iptables -nvL DOCKER CHAIN rule to the gitlab container ip on port 22
+
+NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved in any way for these SSH traffic flow to the gitlab container.
+
+
+
+## Basic website application test
+
+IMPORTANT NOTE: the repository used for the application on the EC2 controller is completely separate from the repo used for the ansible playbook code. The repos are distinct and have to be separate because the application (project) repo push is what instigates the pipeline sript to be run on the gitlab runner. This is noted in the repo design section above. The ansible playbook code only interacts with github for backup, and not with gitlab.
+
+### Detailed packet flow for the website application test
+
+The packet flow for the deployment of the website application test via the gitlab .gitlab-ci.yml script is below.
+
+This is more involved than the packet flow for gitlab admin indicated above because there is an additional deployed docker container for the application itself.
+
+
+NOTE: for details of the iptables rules, specific ip addresses, etc see notes.txt
+The network diagrams are in the Word doc.
+
+
+NOTE:  no cloud services are required for deployment. The VPS is powerful enough to handle the deploymen to the app (in this case a simple caddy website instance) to a docker container on the VPS itself. 
+
+A current docker container snapshot is below after the website application is deployed.
+[root@vps scripts]# docker ps
+CONTAINER ID   IMAGE                         COMMAND                  CREATED          STATUS                    PORTS                                                                         NAMES
+d1d3d4c3cbc9   checkmk/check-mk-raw:latest   "/docker-entrypoint.…"   45 minutes ago   Up 45 minutes (healthy)   5000/tcp, 6557/tcp                                                            checkmk.linode.cloudnetworktesting.com
+2ea4192c683a   namshi/smtp                   "/bin/entrypoint.sh …"   45 minutes ago   Up 45 minutes             25/tcp                                                                        mailer
+eb9b06bd0033   nextcloud:28.0.9-apache       "/entrypoint.sh apac…"   45 minutes ago   Up 45 minutes             80/tcp                                                                        nextcloud.linode.cloudnetworktesting.com
+b76750c470d5   pihole/pihole:latest          "/s6-init"               45 minutes ago   Up 45 minutes (healthy)   10.36.7.11:53->53/udp, 10.36.7.11:53->53/tcp, 10.36.7.11:67->67/udp, 80/tcp   pi-hole.linode.cloudnetworktesting.com
+42f888c4a819   traefik:latest                "/entrypoint.sh --lo…"   46 minutes ago   Up 46 minutes             0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp      traefik.linode.cloudnetworktesting.com
+0fcdc6e454d4   caddy:latest                  "caddy run --config …"   18 hours ago     Up 18 hours               80/tcp, 443/tcp, 2019/tcp, 443/udp                                            linode.cloudnetworktesting.com
+900d8851ca24   gitlab/gitlab-ce:latest       "/assets/wrapper"        23 hours ago     Up 23 hours (healthy)     80/tcp, 443/tcp, 0.0.0.0:44822->22/tcp, [::]:44822->22/tcp                    gitlab.linode.cloudnetworktesting.com
+
+
+
+First, the  treafik whitelist for gitlab container (not the traefik container) must have the VPS public ip. This is because the gitlab runner sources packet from the VPS and during registration this needs to be allowed into the gitlab container. Otherwise, registration of the runner with the gitlab docker container server will fail.
+
+More specifically these two lines in the docker-compose.yml file for the gitlab container in the ansible playbook:
+      - "traefik.http.routers.${service_gitlab}.middlewares=${service_gitlab}-allowlist"
+      - "traefik.http.middlewares.${service_gitlab}-allowlist.ipallowlist.sourcerange=${ip_allowlist}"
+
+  The ip_allowlist is given in the .env file for the gitlab container ansible plabyook role
+  This list has to include the public ip of the VPS.
+
+  Once the basics are done, when the .gitlab-ci.yml file is added to the website project gitlab repo and pushed from EC2 controller to the gitlab repo, this will instigate the running (gitlab runner) of the script.
+
+  For this very simple starter gitlab script the runner first clones the repo once it gets the .gitlab-cy.yml file. The runner then runs the docker-compose.yml commands in the source code
+
+The following files are present for this simple project
+-rw-rw-r-- 1 ubuntu ubuntu  274 Oct 10 00:43 .gitlab-ci.yml
+-rw-rw-r-- 1 ubuntu ubuntu   52 Oct  9 23:18 Caddyfile
+-rw-rw-r-- 1 ubuntu ubuntu  760 Oct 10 01:44 docker-compose.yml
+-rw-rw-r-- 1 ubuntu ubuntu 1832 Oct  9 23:27 index.html
+
+The index.html has the content to serve on the website 
+
+The runner runs the docker-compose which starts a new docker container with the config files and content above on the VPS itself, as the deployment.
+
+
+Note docker compose has all the info to program traefik as well and so it was successfully added.
+
+
+Finally when a request https://linode.********.com is made in browser it hits the VPS public interface
+The iptables have rules that docker added when the website container was added so the packet will be forwarded to traefik
+First the NAT engine is hit with any port 80 traffic nat to the traefik container ip on port 80
+
+Traefik then accepts the port 80 tarffic due to the iptables -nvL DOCKER chain rule ACCEPT
+
+Once traefik has the packet it intercepts it and gets the Host header information, and based on its service forwarding rule it forwards the traffic to the docker container ip that is running the website docker container on port 80. This is because there is a traefik HTTP router and service that has been added for the Hostname linode.*****.com, the hostname for the website.
+
+In looking at the traefik Web Admin console, the forwarding ip address in the service for this HTTP router is the ip address of teh docker container of the website.....
+
+The hostname of the webiste is in the .env file for this project, but as noted above these are not pushed to gitlab repo for security reasons and the ENV vars are all added via the gitlab Web Admin console.
+These are the important variables that define the website and the container name, etc:
+
+container_name="linode.**********.com"
+hostname="linodel.**************.com"
+docker_image="caddy"
+docker_image_tag="latest"
+service="cloudnetworktesting"
+
+These are used in the traefik labels in the docker-compose.yml file noted above that creates this docker container website.
+
+The website application traefik labels are below: (this is what creates the HTTP router and service noted above, that routes the traffic to the application docker container):
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.${service}.rule=Host(`${hostname}`)"
+      - "traefik.http.routers.${service}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${service}.entrypoints=https"
+      - "traefik.http.services.${service}.loadbalancer.server.port=80"
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Python backup-checker application (source code) deployment with gitlab:
 
-
+This is a deployment of a full fledged application with a multi-stage .gitlab-ci.yml pipeline configuration file.
 
 
 ## extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
