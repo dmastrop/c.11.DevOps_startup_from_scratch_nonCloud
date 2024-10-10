@@ -869,7 +869,7 @@ This will place the 3 agent files onto the VPS and place the add_host.sh on the 
 
 The add_host.sh will sequentially execute the 3 curl REST API actions to create the host on the checkmk and then service discovery and then apply service discovery to the host on the Web Admin console.
 
-There was an issue between the second curl REST API invocation and the third curl REST API invocation due to the service discovery not being complete prior to the apply (the third curl REST API).  Adding a sleep of 10 seconds between second and third curl resolved the issue.
+There was an issue between the second curl REST API invocation and the third curl REST API invocation due to the service discovery not being complete prior to the apply (the third curl REST API).  Adding a sleep of 10 seconds between second and third curl resolved the issue. A sleep of 3 seconds was inadequate to fully resolve the issue.
 
 See the notes.txt  for more detail on the script and the exact nature of the fix.
 
