@@ -47,3 +47,6 @@
     hour: "2"
     user: root
     job: "/root/services/gitlab/backup.sh > /dev/null 2>&1"
+
+# This is for the gitlab runner. The actual tasks for the runner setup are in runner.yml
+- include_tasks: runner.yml      
