@@ -1153,6 +1153,17 @@ The website application traefik labels are below: (this is what creates the HTTP
 
 This is a deployment of a full fledged application with a multi-stage .gitlab-ci.yml pipeline configuration file.
 
+### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container.
+
+
+
+
+
+
+
+
+
+
 
 ## extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
 
