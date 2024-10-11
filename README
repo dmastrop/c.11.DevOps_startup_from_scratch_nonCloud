@@ -1015,12 +1015,13 @@ Traefik’s labels (NOT gitlab container traefik labels) are below. Note the 80 
 So ultimately the packet is a 443 packet.
 
 The 443 packet ends up on public VPS interface and the ports are mapped to  traefik container ip  80:80 and 443:443 by the firewall.
-The iptables NAT is first
+The iptables NAT table processes the packet. The PREROUTING table last rule is hit and this forwards to target DOCKER chain 
+Once in the DOCKER chain the non bridge !br traffic hits the 443 rule and this forward the packet with DNAT to the traefik container private ip on port 443.
 The destination ip is mapped from public IP to the container ip address of traefik 
 
 NOTE: the docker container ip addresses will change each time ansible-playbook reintializes and installs new containers. The private ip address container ips are NOT static. They are, however from a select group of private 172 subnets.....
 
-After the iptables NAT (iptables -t nat -nvL) processes the packet::  Then firewall (iptables -nvL) DOCKER chain will then forward the packets to traefik container on that port given dest ip is the traefik container private ip address. The traffic will be ACCEPTED by this stage of the firewall
+After the iptables NAT (iptables -t nat -nvL) processes the packet::  
 (see notes.txt for dump of the actual firewaall rules)
 
 Traefik sees the Host header as gitlab.linode.************.com and forwards the packet to the gitlab container via its HTTP router. 
@@ -1042,7 +1043,9 @@ The container is configured with <high_numbered_port>:22 in its ports: in docker
 
 Docker will make the high numbered port on VPS to 22 on the gitlab docker container itself in the iptables NAT firewall rules. There will be a NAT for dest port high numbered port to the gitlab container ip on port 22
 
-Then the port 22 traffic is ALLOWED per iptables -nvL DOCKER CHAIN rule to the gitlab container ip on port 22
+The packet first hits the PREROUTING table and forwards to the DOCKER chain
+In the DOCKER chain there is a DNAT rule that will nat the packet 44822 to the traefik container ip adddress and port 22
+
 
 NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved in any way for these SSH traffic flow to the gitlab container.
 
@@ -1107,9 +1110,8 @@ Note docker compose has all the info to program traefik as well and so it was su
 
 Finally when a request https://linode.********.com is made in browser it hits the VPS public interface
 The iptables have rules that docker added when the website container was added so the packet will be forwarded to traefik
-First the NAT engine is hit with any port 80 traffic nat to the traefik container ip on port 80
-
-Traefik then accepts the port 80 tarffic due to the iptables -nvL DOCKER chain rule ACCEPT
+First the iptables NAT engine PREROUTING table is hit and forwards to the DOCKER chain.
+Here the port 80 traffic is nat'ed to the traefik private ip address on port 80
 
 Once traefik has the packet it intercepts it and gets the Host header information, and based on its service forwarding rule it forwards the traffic to the docker container ip that is running the website docker container on port 80. This is because there is a traefik HTTP router and service that has been added for the Hostname linode.*****.com, the hostname for the website.
 
