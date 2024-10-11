@@ -1155,6 +1155,7 @@ This is a deployment of a full fledged application with a multi-stage .gitlab-ci
 ## extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
 
 The VPS gitlab environment will run the pipeline against an EKS cluster in AWS using helm.
+This will be an extension to a more complete CI/CD pipeline from a software development lifecycle perspective, involving multiple stages like BUILD, PROMOTE, DEPLOY, etc......
 
 
 
