@@ -51,6 +51,19 @@ COMMIT
 -A INPUT -i eth0 -p udp --dport 9473 -j ACCEPT
 
 
+# Allow HTTP(S) from inside Docker containers. These had to be added because the 
+# python backup-checker app that will be deployed to a docker container via gitlab pipeline
+# needs to communicate with zulip to establish the connection stream so that it can message 
+# results to zulip.  Zulip.linode.cloudnetworktesting.com resolves to the VPS public ip so 
+# we essentially need docker container to public VPS ip address ACCEPT rules for 80 and 443
+-A INPUT -s 172.21.0.0/16 -d 173.230.155.238 -p tcp -m multiport --dports 80,443 -j ACCEPT
+-A INPUT -s 172.22.0.0/16 -d 173.230.155.238 -p tcp -m multiport --dports 80,443 -j ACCEPT
+-A INPUT -s 172.23.0.0/16 -d 173.230.155.238 -p tcp -m multiport --dports 80,443 -j ACCEPT
+-A INPUT -s 172.24.0.0/16 -d 173.230.155.238 -p tcp -m multiport --dports 80,443 -j ACCEPT
+-A INPUT -s 172.25.0.0/16 -d 173.230.155.238 -p tcp -m multiport --dports 80,443 -j ACCEPT
+
+
+
 # WireGuard clients allow traffic from this source ip
 -A INPUT -s 10.100.94.11/32 -j ACCEPT
 -A INPUT -s 10.100.94.12/32 -j ACCEPT

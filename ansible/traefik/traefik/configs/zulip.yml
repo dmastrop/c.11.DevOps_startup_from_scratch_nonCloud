@@ -3,6 +3,10 @@ http:
 # here is 'zulip' and the ip addresses and the Host header name as indicated below.  See the extensive notes in mail.yml for
 # technical details. They apply here as well.
 # NOTE that the middleware is a unique name from the mail-allowlist. This way we can customize the whitelist for each service
+# In middlewares added the docker container private networks. For the python backup-checker app to work it needs to communicate
+# with zulip to stream message updates to zulip.  Thus nwe need to add the docker subnets to the ip _allowlist below
+# The python app will connect to zulip.linode.cloudnetworktesting.com public VPS address (note we will also have to add
+# iptables.rules for this as well in INPUT chain of iptables -nvL
   routers:
     zulip:
       rule: Host(`zulip.linode.cloudnetworktesting.com`)
@@ -20,6 +24,11 @@ http:
       ipallowlist:
         sourceRange:
           - "10.100.94.1/24"
+          - "172.21.0.0/16"
+          - "172.22.0.0/16"
+          - "172.23.0.0/16"
+          - "172.24.0.0/16"
+          - "172.25.0.0/16"
 
   services:
     zulip:

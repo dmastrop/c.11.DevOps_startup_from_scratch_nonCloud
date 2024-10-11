@@ -2,7 +2,7 @@
   roles:
     #- hostname
     #- essentials
-    #- security
+    - security
     #- sysctl
     #- certbot
     #- wireguard
@@ -14,4 +14,4 @@
     #- nextcloud
     #- checkmk
     #- borg
-    - gitlab
+    #- gitlab
