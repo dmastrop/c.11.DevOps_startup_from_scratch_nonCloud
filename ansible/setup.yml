@@ -2,12 +2,12 @@
   roles:
     #- hostname
     #- essentials
-    - security
+    #- security
     #- sysctl
     #- certbot
     #- wireguard
     #- docker
-    #- mariadb
+    - mariadb
     #- lxc
     #- traefik
     #- pi-hole

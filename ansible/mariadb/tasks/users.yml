@@ -23,6 +23,65 @@
     state: present
   no_log: true
 
+## the following 5 blocks are for adding the backup_script user permission to connect from the docker subnets
+## This is required for the python app, which is running in a docker container (Backup-checker) to query the mariadb 
+## as backup_script mariadb user
+
+- name: check for database user 'backup_script@172.21.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "172.21.%.%"
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'backup_script@172.22.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "172.22.%.%"
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'backup_script@172.23.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "172.23.%.%"
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'backup_script@172.24.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "172.24.%.%"
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
+
+- name: check for database user 'backup_script@172.25.0.0/16'
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    name: backup_script
+    password: "{{ mariadb_backup_script_password }}"
+    host: "172.25.%.%"
+    priv: 'backups.*:ALL'
+    state: present
+  no_log: true
+
 
 
  ## the following blocks are for adding the  nextcloud db user so that the VPS mariadb can be  used by the nextcloud docker container
