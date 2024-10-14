@@ -958,20 +958,9 @@ and method 2 a mount: borgmatic mount --archive latest --mount-point /mnt/borg -
 
 ## Gitlab and the Gitlab runner:
 
-### repository design
+### repository design FOR GITLAB PROJECTS:
 
-NOTE: this repository is distinct from the repo used for the ansible playbook infra code. The ansible code is only backed up to github and has nothing to do with gitlab.
-
-
-Create a new main directory for all of the gitlab projects on the EC2 controller
-
-EC2 controller will have https remote origin2 configured to github for backup of gitlab repo
-
-EC2 controller will have ssh remote origin configured to gitlab for active project pipeline code development and testing 
-
-Local Mac  VSCode will have https remote origin to github for local backup of the all of the github/gitlab development projects (do a git pull from github once each commit from EC2 is complete
-
-The .gitignore will drop the .env file. The .env file although present on the EC2 controller repo is  not used and is not pushed to gitlab or github repos for security reasons. The .env variables are added to the project settings Variables in gitlab Admin Console itself.
+See the first gitlab project in the section below "GITLAB PROJECT1: Basic website application test"
 
 
 ### Introduction:
@@ -1051,9 +1040,31 @@ NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved
 
 
 
-## Basic website application test
 
-IMPORTANT NOTE: the repository used for the application on the EC2 controller is completely separate from the repo used for the ansible playbook code. The repos are distinct and have to be separate because the application (project) repo push is what instigates the pipeline sript to be run on the gitlab runner. This is noted in the repo design section above. The ansible playbook code only interacts with github for backup, and not with gitlab.
+
+
+
+
+
+## GITLAB PROJECT1: Basic website application test:
+
+IMPORTANT NOTE: the repository used for the application on the EC2 controller is completely separate from the repo used for the ansible playbook code. The repos are distinct and have to be separate because the application (project) repo push is what instigates the pipeline sript to be run on the gitlab runner.  The ansible playbook code only interacts with github for backup, and not with gitlab. More details on the gitlab project repo design in next section below....
+
+### GITLAB PROJECTS repo design:
+
+NOTE: this repository is distinct from the repo used for the ansible playbook infra code. The ansible code is only backed up to github and has nothing to do with gitlab.
+
+
+Create a new main directory for all of the gitlab projects on the EC2 controller
+
+EC2 controller will have https remote origin2 configured to github for backup of gitlab repo
+
+EC2 controller will have ssh remote origin configured to gitlab for active project pipeline code development and testing 
+
+Local Mac  VSCode will have https remote origin to github for local backup of the all of the github/gitlab development projects (do a git pull from github once each commit from EC2 is complete
+
+The .gitignore will drop the .env file. The .env file although present on the EC2 controller repo is  not used and is not pushed to gitlab or github repos for security reasons. The .env variables are added to the project settings Variables in gitlab Admin Console itself.
+
 
 ### Detailed packet flow for the website application test
 
@@ -1081,7 +1092,7 @@ b76750c470d5   pihole/pihole:latest          "/s6-init"               45 minutes
 
 
 
-First, the  treafik whitelist for gitlab container (not the traefik container) must have the VPS public ip. This is because the gitlab runner sources packet from the VPS and during registration this needs to be allowed into the gitlab container. Otherwise, registration of the runner with the gitlab docker container server will fail.
+First, the  treafik whitelist for gitlab container (not the traefik container) must have the VPS public ip. This is because the gitlab runner sources packet from the VPS and during registration this needs to be allowed into the gitlab container. Otherwise, registration of the runner with the gitlab docker container server will fail. (see previous sectoin above)
 
 More specifically these two lines in the docker-compose.yml file for the gitlab container in the ansible playbook:
       - "traefik.http.routers.${service_gitlab}.middlewares=${service_gitlab}-allowlist"
@@ -1092,7 +1103,7 @@ More specifically these two lines in the docker-compose.yml file for the gitlab 
 
   Once the basics are done, when the .gitlab-ci.yml file is added to the website project gitlab repo and pushed from EC2 controller to the gitlab repo, this will instigate the running (gitlab runner) of the script.
 
-  For this very simple starter gitlab script the runner first clones the repo once it gets the .gitlab-cy.yml file. The runner then runs the docker-compose.yml commands in the source code
+  For this very simple starter gitlab script, gitlab clones the project repo to the runner once it gets the .gitlab-cy.yml file. The runner then runs the docker-compose.yml commands in the source code
 
 The following files are present for this simple project
 -rw-rw-r-- 1 ubuntu ubuntu  274 Oct 10 00:43 .gitlab-ci.yml
@@ -1115,9 +1126,9 @@ Here the port 80 traffic is nat'ed to the traefik private ip address on port 80
 
 Once traefik has the packet it intercepts it and gets the Host header information, and based on its service forwarding rule it forwards the traffic to the docker container ip that is running the website docker container on port 80. This is because there is a traefik HTTP router and service that has been added for the Hostname linode.*****.com, the hostname for the website.
 
-In looking at the traefik Web Admin console, the forwarding ip address in the service for this HTTP router is the ip address of teh docker container of the website.....
+In looking at the traefik Web Admin console, the forwarding ip address in the service for this HTTP router is the ip address of the docker container of the website.....
 
-The hostname of the webiste is in the .env file for this project, but as noted above these are not pushed to gitlab repo for security reasons and the ENV vars are all added via the gitlab Web Admin console.
+The hostname of the webiste is in the .env file for this project, but as noted above these are not pushed to gitlab repo for security reasons and the ENV vars are all added via the gitlab Web Admin console.(manuallY)
 These are the important variables that define the website and the container name, etc:
 
 container_name="linode.**********.com"
@@ -1170,23 +1181,35 @@ CMD ["python", "main.py"] <<< it runs the main.py when it comes up (after deploy
 My directory name is backup_checker_python, but only the app folder is going to be copied over not the complete directory.
 
 
-FROM python:3.10
-WORKDIR /backup-checker
-COPY ./app /backup-checker
-RUN pip install --no-cache-dir -r requirements.txt   <<< installs the dependencies
-CMD ["python", "main.py"]
+From the Dockerfile comments:
+
+##NOTES:
+#copy over the entire app directory to backup-checker directory in the docker container.  I am not pushing over .env because
+#that will be created on the fly in the .gitlab-ci.yml file
+#The python:3.10 docker image has been tested to see that it contains the 2 libs below. These are required now that the 
+#main.py python backup-checker is using the mariadb connector instead of mysql.connector function.
+#To verify the docker python:3.10 image do the following:
+#docker run -it --rm python:3.10 bash (step 1). This start a terminal session in the container itself.
+#dpkg -l | grep libmariadb3
+#dpkg -l | grep libmariadb-dev
+#both of these show as installed in the docker python:3.10 docker container.
+#With these libs, the pip install of dependencies requirements.txt which now has mariadb-1.1.10, should install without issues
 
 
 Need to run the main.py from a docker container running python 3.10
+
+### .gitlab-ci.yml stages:
 
 Need to create a Dockerfile to create the docker image.  The .gitlab-ci.yml will have a BUILD stage and will instruct the runner to create the docker image as a first stage. The runner needs the Dockerfile to do this.
 NOTE that the runner gets the entire build directory with the .gitlab-ci.yml and Dockerfile and the app directory.
 The runner copies the app directory into the docker image when it builds it as part of the BUILD stage of .gitlab-ciy.yml
 
-The app directory has the main.py requirements.txt for dependencies and the expected-backups file for compare. The .env will be created on the fily by the gitlab .gitlab-cy.yml script with the maraidb backup password and the zulip_bot_api_key being storted locally on the gitlab project for security.
+The app directory has the main.py requirements.txt for dependencies and the expected-backups file for compare. The .env will be created on the fly by the gitlab .gitlab-cy.yml script with the maraidb backup password and the zulip_bot_api_key being storted locally on the gitlab project for security.  So it is ok that the .env is not being pushed to the gitlab and github repos.
 
 
 ### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container.
+
+There are several issues that have to be addressed with this python application being deployed to the VPS in a docker container.  The python script communicates with the mariadb to query backups and also needs to message the backup status to zulip, the lxc container on the VPS running the zulip messaging service.
 
 
 
