@@ -1153,6 +1153,39 @@ The website application traefik labels are below: (this is what creates the HTTP
 
 This is a deployment of a full fledged application with a multi-stage .gitlab-ci.yml pipeline configuration file.
 
+
+### high level overview:
+
+Push .gitlab-ci.yml to the gitlab repo. This will notify runner to run the script.
+It will build the docker image, push to private registry on gitlab, and then deploy the docker image from the private registry, i.e. the python docker container which will run the backup script main.py. it is running python image 3.10 (the docker python container) and from the manual testing from EC2 controller running python 3.9.13 and windows VPN client python 3.9.13 it should be ok. There were some lib dependency issues with the EC2 ubuntu controller but that was resolved by adding 2 libraries below. When testing on the Docker python 3.10 we may need to add such libararies when testing this on the docker container.
+
+sudo apt install libmariadb3 libmariadb-dev
+
+FROM python:3.10
+WORKDIR /backup-checker
+COPY ./app /backup-checker
+RUN pip install --no-cache-dir -r requirements.txt
+CMD ["python", "main.py"] <<< it runs the main.py when it comes up (after deployed via the .gitlab-ci.yml)
+
+My directory name is backup_checker_python, but only the app folder is going to be copied over not the complete directory.
+
+
+FROM python:3.10
+WORKDIR /backup-checker
+COPY ./app /backup-checker
+RUN pip install --no-cache-dir -r requirements.txt   <<< installs the dependencies
+CMD ["python", "main.py"]
+
+
+Need to run the main.py from a docker container running python 3.10
+
+Need to create a Dockerfile to create the docker image.  The .gitlab-ci.yml will have a BUILD stage and will instruct the runner to create the docker image as a first stage. The runner needs the Dockerfile to do this.
+NOTE that the runner gets the entire build directory with the .gitlab-ci.yml and Dockerfile and the app directory.
+The runner copies the app directory into the docker image when it builds it as part of the BUILD stage of .gitlab-ciy.yml
+
+The app directory has the main.py requirements.txt for dependencies and the expected-backups file for compare. The .env will be created on the fily by the gitlab .gitlab-cy.yml script with the maraidb backup password and the zulip_bot_api_key being storted locally on the gitlab project for security.
+
+
 ### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container.
 
 
