@@ -1040,7 +1040,33 @@ NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved
 
 
 
+### Gitlab docker container design:
 
+#The ports 44822:22 is for the ssh port to git repository (for example git clone using ssh rather than https)
+#Packet routing details are in the notes.txt and README files. Packet routing for the HTTP/HTTPS gitlab is different from
+#the packet routing for the ssh traffic to gitlab (for example git clone git@gitlab.linode.cloudnetworktesting.com)
+#Traefik handles the HTTP/HTTPS but for SSH we have to map the port as below ourselves 44822:22 44822 is incoming and needs to be
+#mapped to 22 on the container itself.
+#The volumes has the directories that we need to persist even after the containers are removed.
+#the first 3 volumes are from the documentation
+#the fourth is to save the tar archive directly on the VPS
+#LABELS: This line is the port that the nginx is listening on in the gitlab container
+#- "traefik.http.services.${service_gitlab}.loadbalancer.server.port=80"
+#For LABELS docker registry: registry is listening on port 5050
+#Traefik needs to handle 2 servcies for this setup: one is service_gitlab and the other service_registry for the image/docker registry
+#The ip whitelist subnets will be the same.
+#/etc/gitlab.rb is the main configuration file
+#This can be modified on an runing gitlab instance and gitlab reloaded and then they will take effect
+#Here we will deploy the container with all of these settings already done, via the enviroment section below
+#NOTE that the smtp configuration is here. It will use the existing iRedMail lxc container on the VPS
+#worker processes based upon th cpu cores and prometheus will be disabled because it is resource intensive.
+#nginx configuration follows: we only want to listen on port 80
+#This is because the TLS cert for gitlab container is done by traefik via letsencrypt
+#trusted_subnets are docker subnets
+#nginx['real_ip_header'] = 'X-Forwarded-For' This is so that we see the real ip of the client in the logs and not the ip of
+#traefik since traefik is reverse procying the connection along the way.
+#Otherwise we will see the private ip of traefik 172 address in the gitlab access logs.
+#Gitlab private docker images registry to store the docker images     registry_external_url "${gitlab_registry_url}
 
 
 
@@ -1282,10 +1308,7 @@ Finally, the gitlab pipeline scheduler will run this script at a predefined time
 
 
 
-## GITLAB PROJECT3: extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
 
-The VPS gitlab environment will run the pipeline against an EKS cluster in AWS using helm.
-This will be an extension to a more complete CI/CD pipeline from a software development lifecycle perspective, involving multiple stages like BUILD, PROMOTE, DEPLOY, etc......
 
 
 
@@ -1295,6 +1318,22 @@ This will be an extension to a more complete CI/CD pipeline from a software deve
 
 
 ## UPGRADE SCRIPTS (AUTO) for iRedMail, Zulip and VPS host OS
+
+
+
+
+
+
+
+
+
+## GITLAB PROJECT3: extending this gitlab VPS setup to deploy a weather app (source code) to AWS K8s EKS cluster using helm:
+
+The VPS gitlab environment will run the pipeline against an EKS cluster in AWS using helm.
+This will be an extension to a more complete CI/CD pipeline from a software development lifecycle perspective, involving multiple stages like BUILD, PROMOTE, DEPLOY, etc......
+
+
+
 
 
 
