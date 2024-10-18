@@ -1162,15 +1162,20 @@ The website application traefik labels are below: (this is what creates the HTTP
 
 ## GITLAB PROJECT2: Python backup-checker application (source code) deployment with gitlab:
 
-This is a deployment of a full fledged application with a multi-stage .gitlab-ci.yml pipeline configuration file.
+### Introduction:
+
+This is a deployment of a basic python script that will check the status of the backups on the VPS. The ptyon script will be deployed in a python:3.10 docker container.  The gitlab pipeline is a basic multi-stage .gitlab-ci.yml pipeline configuration file to build, push to gitlab private container registry/repo, and deploy (docker run the image on gitlab runner) and then cleanup the images.  The images need to be cleaned up because the gitlab-runner is installed on the VPS as a service (registered to the gitlab docker container) and as such the runner is running the docker container basically on the VPS. So docker container instances and images are run and stored locally on the VPS.   The docker container instances expire after running the python script but the images will persist (docker image ls) on the VPS if not cleaned up. Note the cleanup is for docker images on the VPS and not the gitlab private container registry. The registry images will be left in the registry.  There needs to be an  allow_failure: true in the deploy stage in case the deploy stage detects a diff in current backup state and expected_backups state (This is a "failure") depending on the time of day that the pipeline is run. This is so that it proceeds to the cleanup stage regardless of the state of the deploy stage, so that the images do not build up on the VPS.
 
 
-### high level overview:
+### high level overview and manual testing of the python main.py script:
 
 Push .gitlab-ci.yml to the gitlab repo. This will notify runner to run the script.
-It will build the docker image, push to private registry on gitlab, and then deploy the docker image from the private registry, i.e. the python docker container which will run the backup script main.py. it is running python image 3.10 (the docker python container) and from the manual testing from EC2 controller running python 3.9.13 and windows VPN client python 3.9.13 it should be ok. There were some lib dependency issues with the EC2 ubuntu controller but that was resolved by adding 2 libraries below. When testing on the Docker python 3.10 we may need to add such libararies when testing this on the docker container.
+It will build the docker image, push to private registry on gitlab, and then deploy the docker image from the private registry, i.e. the python docker container which will run the backup script main.py. it is running python image 3.10 (the docker python container) and from the manual testing from EC2 controller running python 3.9.13 and windows VPN client python 3.9.13 it should be ok. There were some lib dependency issues with the EC2 ubuntu controller but that was resolved by adding 2 libraries below. When testing on the Docker python 3.10 we may need to add such libararies when testing this on the docker container.  I did test a docker python:3.10 container and docker exec -it into the image and found that the lib files that were missing in EC2 testing were actually already present in the docker python:3.10 instance. So the python:3.10 docker container will be able to install all of the python requirements.txt dependencies (see Dockerfile) and run the script.
 
-sudo apt install libmariadb3 libmariadb-dev
+sudo apt install libmariadb3 libmariadb-dev (for ubuntu EC2 to run the requirements.txt and then run the python script)
+
+
+Dockerfile:
 
 FROM python:3.10
 WORKDIR /backup-checker
@@ -1198,6 +1203,16 @@ From the Dockerfile comments:
 
 Need to run the main.py from a docker container running python 3.10
 
+
+I also tested the python script from windows VSCode as well. This requires that wiredguard VPN tunnel is set up because the script needs to contact mariadb on the VPS via the loopback interface of the VPS as well as contact zulip via the public VPS ip.  This works very well and pyenv is set up on the windows client and I was able to test the script and requirements with several different versions of python.  Of note, the requirements.txt will not install with python 3.12.5 (a latest version).  3.9 and 3.10s versions worked well.
+
+Finally, to simulate a gitlab-runner, also manually downloaded one of the docker images from gitlab-registry.linode.****.com. (to do this must log in with docker login gitlab-registry.linode.****.com and the gitlab root password). Once the image is downloaded can run the docker run command with a stripped down .env file (remove quotes with sed command):
+Docker run --env-file=.env-docker gitlab-registry.linode.*********.com/dmastrop/backup_checker_python:18-84bc99b6
+This will run the complete script locally along with the output
+This was done on a windows client so VSCode had to be installed, along with docker desktop.
+
+additional notes; Running the code locally can be done. Must authenticate to the gitlab-registry.linode.c****************.com with gitlab password then docker pull the image from the registry then strip down the .env file without quotes  (use a sed) and finally run the docker image. This must be done from a VPN wireguard client because the python container will connect to the maraidb on the VPS loopback as well as push notification to the zulip. So it needs to be able to connect to the loopback ip on the VPS for connection to the db_host mariadb as well as public VPS for push to zulip.
+
 ### .gitlab-ci.yml stages:
 
 Need to create a Dockerfile to create the docker image.  The .gitlab-ci.yml will have a BUILD stage and will instruct the runner to create the docker image as a first stage. The runner needs the Dockerfile to do this.
@@ -1206,11 +1221,57 @@ The runner copies the app directory into the docker image when it builds it as p
 
 The app directory has the main.py requirements.txt for dependencies and the expected-backups file for compare. The .env will be created on the fly by the gitlab .gitlab-cy.yml script with the maraidb backup password and the zulip_bot_api_key being storted locally on the gitlab project for security.  So it is ok that the .env is not being pushed to the gitlab and github repos.
 
+The push stage will push the builds (2 of them, one with latest tag and one with COMMIT_SHORT_SHA tag) to the gitlab private container registry/repo on the gitlab container. This registry can be used by the gitlab-runner on the VPS to run the docker image on the VPS. The gitlab-runner runs on the VPS.  The .env file is created on the fly as indicated above in the deploy stage and then the runner does docker run --env-file .env $CI_REGISTRY_IMAGE:latest on the latest image.  This will store a copy of the image on the VPS (docker image ls) that should be removed by the cleanup stage regardless of whether or not the python main.py reveals a diff (failure) or no diff.
 
-### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container.
+
+### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container and to query maraidb on the VPS through the VPS loopback interface.
 
 There are several issues that have to be addressed with this python application being deployed to the VPS in a docker container.  The python script communicates with the mariadb to query backups and also needs to message the backup status to zulip, the lxc container on the VPS running the zulip messaging service.
 
+Because the python app is contacting zulip from a container we had to add all docker subnets to the Traefik whitelist (ipallowlist) for the zulip container
+ubuntu@ip-172-31-21-52:~/course11_devops_startup/ansible/traefik/traefik/configs$ cat zulip.yml (ansible traefik role)
+
+
+Next add itables -nVL rule for docker to public VPS communication (zulip traffic/messaging). This is because the python is running in a docker container and it has to connect to the mariadb on the VPS as well as zulip.linode.****************.com to send message to zulip steam (ansible security role).  What actually happens is that the iptables nat table (iptables -t nat -nvL) is hit. The PREROUTING policy is hit first which instructs to go to the DOCKER CHAIN. In the DOCKER CHAIN docker to public VPS is considered docker bridge (br) traffic and it hits RETURN. So the folow goes back up to the PREROUTING policy where there is no match for the traffic. So the packet has to be proceesed by the iptables -nvL INPUT chain. There needs to be added rules from the docker subnets to the VPS public ip for 80 and 443 here. These need to be added.
+
+Backup_script mariadb user needs to have docker subnets (python app) added to permissions because the python app in docker container will be querying the mariadb as this user for the backup list. (ansible maraidb role ansible mariadb/tasks/users.yml)
+
+
+### more configuration:
+
+New stream in zulip called “vps”
+New bot cloudnetworktesting-bot with api key
+Expected_backups file for comparison
+Dockerfile to create the docker image that the python will run in (note: python:3.10 has all of the required dependencies to install the requirements.txt dependencies. Not true for EC2 ubnutu testing image I had to add 2 more dependencies to get the new mariadb stream connector to install as a dependency. Windows as testing image was ok.)
+
+In gitlab added new project and varaiables (2 of them)) that will not be in the .env and created the .gitlab-ci.yml.
+Note that the .env will be created on the fly in cleartext in the .gitlab-ci.yml except for 2 varaibles that are stored locally in the gitlab project (zulip bot api key and maraidb backup user password).  So the .env file does not need to be copied over into the container. The container will be run with the --env-file switch in the .gitlab-ci.yml after the pip install -r requrements.txt is run in the container.
+
+The pipeline has 4 stages
+BUILD, PUSH, DEPLOY and CLEANUP
+
+
+Since the gitlab-runner is running on the VPS itself, and the gitlab runner is running the .gitlab-ci.yml both the VPS and the gitlab image container repository would have the image and the images would build up on the VPS server. This cleanup stage removes the image from the VPS.
+
+The docker image is run on the runner but the runner is on the VPS so all these images build up on it and likewise you will see the docker ps -a docker python containers on the VPS as well.
+
+[root@vps ~]# gitlab-runner status
+Runtime platform                                    arch=amd64 os=linux pid=1478118 revision=b92ee590 version=17.4.0
+gitlab-runner: Service is running
+[root@vps ~]# systemctl status gitlab-runner
+● gitlab-runner.service - GitLab Runner
+     Loaded: loaded (/usr/lib/systemd/system/gitlab-runner.service; enabled; preset: disabled)
+     Active: active (running) since Wed 2024-10-09 20:34:55 UTC; 1 week 1 day ago
+ Invocation: 2add5938a2794d168f41c4959e33d11f
+   Main PID: 566171 (gitlab-runner)
+      Tasks: 12 (limit: 19174)
+     Memory: 56.3M (peak: 127.6M swap: 6.5M swap peak: 6.6M zswap: 1.7M)
+        CPU: 8min 8.134s
+     CGroup: /system.slice/gitlab-runner.service
+             └─566171 /usr/bin/gitlab-runner run --working-directory /var/lib/gitlab-runner --config /etc/gitlab-ru>
+
+
+Finally, the gitlab pipeline scheduler will run this script at a predefined time each day so that we do not have to instigate a push to the gitab repo to run it each day.
 
 
 
@@ -1225,6 +1286,17 @@ There are several issues that have to be addressed with this python application 
 
 The VPS gitlab environment will run the pipeline against an EKS cluster in AWS using helm.
 This will be an extension to a more complete CI/CD pipeline from a software development lifecycle perspective, involving multiple stages like BUILD, PROMOTE, DEPLOY, etc......
+
+
+
+
+
+
+
+
+## UPGRADE SCRIPTS (AUTO) for iRedMail, Zulip and VPS host OS
+
+
 
 
 
