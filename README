@@ -1358,6 +1358,9 @@ For the cleanup stage to run even if the deploy stage "fails", i.e. if there is 
 
 Finally, the gitlab pipeline scheduler will run this script at a predefined time each day so that we do not have to instigate a push to the gitab repo to run it each day.  The time should be set so that the day's scripts are complete so that a "success" on the compare (no diff) is achieved when it is run. For PST compared to the UST on the VPS this is run at around 11pm PST which is an hour or so after the next day's UTC scripts are run for all 7 services (including borg/bormatic)
 
+The update below is sent to a zulip channel (stream) called vps and folder backups.
+The email will be notified as well on zulip@linode.*******.com if the zulip stream is not monitored. There is a 2 minute default delay for sending the email for this purpose (I reduced this to 1 minute).  The .gitlab-ci.yml file uses a zulip bot to do this with a zulip_bot_api_key, etc.
+
 everything is a-ok
 +-----+------------+------------------------------------------+------------+----------+---------+
 | id  |    date    |                  target                  | start_time | end_time | status  |
