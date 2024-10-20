@@ -30,7 +30,7 @@ end_time=$(date +"%T")
 if [[ $? -eq 0 ]]; then
     status="success"
 
-    find "${service_backup_directory}" -mtime +2 -delete
+    find "${service_backup_directory}" -mtime +1 -delete
 else
     status="fail"
 fi
