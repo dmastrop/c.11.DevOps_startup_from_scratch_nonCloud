@@ -1393,7 +1393,9 @@ everything is a-ok
 
 
 
-## UPGRADE SCRIPTS (AUTO) for iRedMail, Zulip and VPS host OS
+## UPGRADE SCRIPTS (AUTO) for docker containers, iRedMail, Zulip and VPS host OS:
+
+NOTE: Do not upgrade the nextcloud docker container. The nextcloud docker container was downgraded because latest version has a lot of issues.
 
 
 
