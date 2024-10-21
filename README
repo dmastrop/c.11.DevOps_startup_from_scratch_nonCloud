@@ -1398,6 +1398,21 @@ everything is a-ok
 NOTE: Do not upgrade the nextcloud docker container. The nextcloud docker container was downgraded because latest version has a lot of issues.
 
 
+### docker coontainer upgrade script modification:
+
+For the docker containers the backup shell scripts will be modified to incorporate an upgrade. The image is :latest but that will not instigate an upgrade to the latest version on docker hub because the latest version will have the same tag :latest. The way to get an upgrade is to pull the latest image from docker hub and then do a docker-compose down and docker-compose up so that a new image is created from the latest image on docker hub. This can be done daily with the backup script.
+
+Note we want to keep nextcloud at the version below due to problems with the newer versions of nextcloud.  28.0.9 seems to be fairly stable.
+
+
+$ grep --include=.env docker_image_tag * -R
+
+checkmk/checkmk/.env:docker_image_tag="latest"
+gitlab/gitlab/.env:docker_image_tag="latest"
+nextcloud/nextcloud/.env:docker_image_tag="28.0.9-apache"
+pi-hole/pi-hole/.env:docker_image_tag="latest"
+traefik/traefik/.env:docker_image_tag="latest"
+
 
 
 
