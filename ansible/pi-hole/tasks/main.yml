@@ -33,8 +33,11 @@
   # to be backed up.   Everything is in the acme.json and if that is lost it will get regenerated once traffic flows to the traefix
   # reverse proxy.
   ansible.builtin.cron:
-    name: backup pi-hole
+    name: backup-and-upgrade pi-hole
     minute: "01"
     hour: "2"
     user: root
-    job: "/root/services/pi-hole/backup.sh > /dev/null 2>&1"
+    #job: "/root/services/pi-hole/backup.sh > /dev/null 2>&1"
+    # edit this to incorporate the upgrade part during the backup cronjob
+    # This ensures that the latest docker image is running in the container each time the cronjob is run
+    job: "/root/services/pi-hole/backup-and-upgrade.sh > /dev/null 2>&1"

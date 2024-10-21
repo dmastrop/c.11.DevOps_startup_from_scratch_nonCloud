@@ -7,10 +7,10 @@
     #- certbot
     #- wireguard
     #- docker
-    - mariadb
+    #- mariadb
     #- lxc
     #- traefik
-    #- pi-hole
+    - pi-hole
     #- nextcloud
     #- checkmk
     #- borg
