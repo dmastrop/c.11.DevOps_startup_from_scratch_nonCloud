@@ -12,6 +12,14 @@
     group: root
     mode: '700'
 
+- name: remove the old backup.sh file
+#this is a test to remove the old backup.sh file on VPS as it has been renamed on the ansible controller
+  ansible.builtin.file:
+    path: /root/services/checkmk/backup.sh
+    state: absent
+
+
+
 - name: run checkmk
   ansible.builtin.shell: "cd /root/services/checkmk && docker-compose down && docker-compose up -d"
 

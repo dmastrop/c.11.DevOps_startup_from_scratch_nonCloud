@@ -13,6 +13,12 @@
     group: root
     mode: '700'
 
+  #- name: remove the old backup.sh file
+  #this is a test to remove the old backup.sh file as it has been renamed
+  #ansible.builtin.file:
+  #  path: /root/services/nextcloud/backup.sh
+  #  state: absent
+
 - name: run nextcloud
   # nextcloud will be created as docker container similar to pi-hole using docker-compose
   ansible.builtin.shell: "cd /root/services/nextcloud && docker-compose down && docker-compose up -d"
@@ -21,10 +27,15 @@
   # crontab -l should be used after the install to verify cronjob is added
   ansible.builtin.cron:
     name: backup nextcloud
+    #name: backup-and-upgrade nextcloud
     minute: "06"
     hour: "2"
     user: root
     job: "/root/services/nextcloud/backup.sh > /dev/null 2>&1"
+    #This next line is for the auto-upgrade to latest docker image for nextcloud.  There is an issue with the newer
+    #code as indicated in the backup-and-upgrade.sh file.  28.0.9 seems to be stable for now.
+    #Do not upgrade the nextcloud for now
+    #job: "/root/services/nextcloud/backup-and-upgrade.sh > /dev/null 2>&1"
 
 - name: add background jobs to cron
   # this is a new addtional section
