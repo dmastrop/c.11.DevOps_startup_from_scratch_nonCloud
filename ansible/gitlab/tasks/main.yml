@@ -40,13 +40,25 @@
   ansible.builtin.shell: "cd /root/services/gitlab && docker-compose down && docker-compose up -d"
   #ansible.builtin.shell: "cd /root/services/gitlab && docker-compose down"
 
-- name: add gitlab backup script to crontab
+#- name: add gitlab backup script to crontab
+#  ansible.builtin.cron:
+#    name: backup gitlab
+#    minute: "16"
+#    hour: "2"
+#    user: root
+#    job: "/root/services/gitlab/backup.sh > /dev/null 2>&1"
+
+
+
+# add upgrade to backup script portion above
+- name: add gitlab backup-and-upgrade script to crontab
   ansible.builtin.cron:
-    name: backup gitlab
+    name: backup-and-upgrade gitlab
     minute: "16"
     hour: "2"
     user: root
-    job: "/root/services/gitlab/backup.sh > /dev/null 2>&1"
+    job: "/root/services/gitlab/backup-and-upgrade.sh > /dev/null 2>&1"
+
 
 # This is for the gitlab runner. The actual tasks for the runner setup are in runner.yml
 - include_tasks: runner.yml      
