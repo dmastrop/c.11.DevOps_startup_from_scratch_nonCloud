@@ -19,7 +19,7 @@
   # edit the backup.sh to backup-and-upgrade.sh so that the docker container is upgraded     
 - name: add backup checkmk script to crontab
   ansible.builtin.cron:
-    name: backup checkmk
+    name: backup and upgrade checkmk
     minute: "11"
     hour: "2"
     user: root
