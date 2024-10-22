@@ -15,13 +15,16 @@
 - name: run checkmk
   ansible.builtin.shell: "cd /root/services/checkmk && docker-compose down && docker-compose up -d"
 
+
+  # edit the backup.sh to backup-and-upgrade.sh so that the docker container is upgraded     
 - name: add backup checkmk script to crontab
   ansible.builtin.cron:
     name: backup checkmk
     minute: "11"
     hour: "2"
     user: root
-    job: "/root/services/checkmk/backup.sh > /dev/null 2>&1"
+    #job: "/root/services/checkmk/backup.sh > /dev/null 2>&1"
+    job: "/root/services/checkmk/backup-and-upgrade.sh > /dev/null 2>&1" 
 
 ### for Docker monitoring
 ### create two directories on the desired host
