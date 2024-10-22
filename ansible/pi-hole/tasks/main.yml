@@ -33,7 +33,7 @@
   # to be backed up.   Everything is in the acme.json and if that is lost it will get regenerated once traffic flows to the traefix
   # reverse proxy.
   ansible.builtin.cron:
-    name: backup-and-upgrade pi-hole
+    name: backup-and-upgrade pi-hole edit
     minute: "01"
     hour: "2"
     user: root
