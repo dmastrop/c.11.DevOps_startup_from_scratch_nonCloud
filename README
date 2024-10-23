@@ -1033,7 +1033,7 @@ The container is configured with <high_numbered_port>:22 in its ports: in docker
 Docker will make the high numbered port on VPS to 22 on the gitlab docker container itself in the iptables NAT firewall rules. There will be a NAT for dest port high numbered port to the gitlab container ip on port 22
 
 The packet first hits the PREROUTING table and forwards to the DOCKER chain
-In the DOCKER chain there is a DNAT rule that will nat the packet 44822 to the traefik container ip adddress and port 22
+In the DOCKER chain there is a DNAT rule that will nat the packet 44822 to the gitlab container ip adddress and port 22
 
 
 NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved in any way for these SSH traffic flow to the gitlab container.
@@ -1067,6 +1067,11 @@ NOTE: traefik is only used for HTTP/HTTPS traffic flows. Traefik is not involved
 #traefik since traefik is reverse procying the connection along the way.
 #Otherwise we will see the private ip of traefik 172 address in the gitlab access logs.
 #Gitlab private docker images registry to store the docker images     registry_external_url "${gitlab_registry_url}
+
+
+
+
+
 
 
 
