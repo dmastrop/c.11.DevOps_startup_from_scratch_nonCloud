@@ -1420,6 +1420,125 @@ traefik/traefik/.env:docker_image_tag="latest"
 
 
 
+Example shell script code to do this for nextcloud, pi-hole and checkmk (partial excerpt):
+This is for checkmk:
+
+
+#add the docker pull for the upgrade of the container
+docker pull ${docker_image}:${docker_image_tag}
+cd "${script_dir}" && \
+docker-compose down && \
+tar -czvf "${service_backup_directory}"/$(date "+%Y-%m-%dT%H-%M-%S").tar.gz "${service_directory}" && \
+docker-compose up -d
+
+end_time=$(date +"%T")
+
+
+
+
+Example shell script code to do this for gitlab (parital excerpt):
+
+docker pull ${docker_image}:${docker_image_tag}
+docker exec -t "${container_name}" gitlab-backup create && \
+docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "{script_dir}" && docker-compose down && docker-compose up -d 
+end_time=$(date +"%T")
+
+
+
+Once the script backup.sh is modified with the above, rename backup-and-upgrade.sh
+
+Then edit the tasks/main.yml to point to backup-and-upgrade.sh instead of backup.sh
+
+For example,
+
+  #edit the backup.sh to backup-and-upgrade.sh so that the docker container is upgraded     
+- name: add backup checkmk script to crontab
+  ansible.builtin.cron:
+    name: backup checkmk
+    minute: "11"
+    hour: "2"
+    user: root
+    #job: "/root/services/checkmk/backup.sh > /dev/null 2>&1"
+    job: "/root/services/checkmk/backup-and-upgrade.sh > /dev/null 2>&1" 
+
+
+Run the ansible-playbook for the task so that the new file is pushed to the VPS
+
+The above in main.yml configures the cronjob 
+crontab -l will show the addition of a new cronjob.
+The old one needs to be manually deleted on the VPS with "crontab -e" edit.
+
+[root@vps ~]# crontab -l
+#Ansible: mariadb dump all databases
+01 3 * * * /root/scripts/mariadb-dump-all-databases.sh > /dev/null 2>&1
+#Ansible: lxc mail.linode.cloudnetworktesting.com backup
+01 1 * * * /root/scripts/lxc-backup-mail-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: lxc zulip.linode.cloudnetworktesting.com backup
+11 1 * * * /root/scripts/lxc-backup-zulip-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: backup nextcloud
+06 2 * * * /root/services/nextcloud/backup.sh > /dev/null 2>&1
+#Ansible: nextcloud background jobs
+*/5 * * * * docker exec --user www-data nextcloud.linode.cloudnetworktesting.com php cron.php
+#Ansible: borgmatic backup
+01 5 * * * /usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1
+#Ansible: backup-and-upgrade pi-hole edit
+01 2 * * * /root/services/pi-hole/backup-and-upgrade.sh > /dev/null 2>&1
+#Ansible: backup and upgrade checkmk
+11 2 * * * /root/services/checkmk/backup-and-upgrade.sh > /dev/null 2>&1
+#Ansible: backup-and-upgrade gitlab
+16 2 * * * /root/services/gitlab/backup-and-upgrade.sh > /dev/null 2>&1
+
+
+
+
+
+
+
+
+Traefik should be upgraded manually because it is a single point of failure.
+To upgrade traefik manually go into the /root/services/traefik directory
+
+root@vps services]# cd traefik/
+[root@vps traefik]# ls
+acme.json  configs  docker-compose.yml
+[root@vps traefik]# pwd
+/root/services/traefik
+
+
+In /root/services/traefik do 
+docker pull traefik:latest
+
+
+then docker-compose down && docker-compose up -d
+
+
+It will take a day or so for the older backup files in /mnt/storage to flush out so that there are not 2 listings of each of the docker container backups above in the main.py backup script output sent to zulip and email.
+
+
+
+
+
+### LXC containers:
+
+The iRedMail and Zulip containers are basically upgraded manually by ssh into the LXC container.  See the Word doc for the links to the docs. The docs should be folllowed to do this.
+
+
+After the upgrade steps are done the LXC container should be rebooted with systemctl reboot
+
+
+### Archlinux host OS VPS:
+
+Use pacman to do this.
+
+pacman -Syu
+
+
+Do it relatively often about 1x/week.
+
+It is always a good idea to do a systemctl reboot especially if the kernel is upgraded
+
+
+
 
 
 
