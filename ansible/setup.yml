@@ -6,12 +6,12 @@
     #- sysctl
     #- certbot
     #- wireguard
-    #- docker
+    - docker
     #- mariadb
     #- lxc
     #- traefik
     #- pi-hole
-    - nextcloud
-    - checkmk
+    #- nextcloud
+    #- checkmk
     #- borg
     #- gitlab

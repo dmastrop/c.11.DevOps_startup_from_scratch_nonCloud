@@ -45,3 +45,7 @@
 # alternative way to install docker-compose
 # this is included as tasks/docker-compose.yml   We will use method above with general.pacman for this project
 #- include_tasks: docker-compose.yml
+#
+#Integarate a docker system prune into the cronjob crontab -l so that it is run every 24 hours. The 
+#first cleanup will be very large
+- include_tasks: prune.yml
