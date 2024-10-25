@@ -1,8 +1,8 @@
 - name: add docker prune to crontab
   ansible.builtin.cron:
     name: docker prune
-    minute: "01"
-    hour: "4"
+    minute: "30"
+    hour: "5"
     user: root
     job: "docker system prune --all --force > /dev/null 2>&1"
 #this will be run after all of the other cronjobs
