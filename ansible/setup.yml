@@ -6,7 +6,7 @@
     #- sysctl
     #- certbot
     #- wireguard
-    - docker
+    #- docker
     #- mariadb
     #- lxc
     #- traefik
@@ -14,4 +14,4 @@
     #- nextcloud
     #- checkmk
     #- borg
-    #- gitlab
+    - gitlab
