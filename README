@@ -1540,6 +1540,96 @@ It is always a good idea to do a systemctl reboot especially if the kernel is up
 
 
 
+## Docker prune
+
+The python backup-checker will create an expired docker container each time it is run. Since it is being run on a scheduler several times a day now, these exited containers will build up rapidly.
+For example, 
+[root@vps ~]# docker ps -a | grep  main.py
+cd4a66bf5112   ca738f9ff232                  "python main.py"         14 hours ago   Exited (0) 14 hours ago                                                                                 compassionate_dirac
+9dc94c87ce1d   e25344175cc7                  "python main.py"         17 hours ago   Exited (1) 17 hours ago                                                                                 vigorous_spence
+772cef92cd00   1325bd573d56                  "python main.py"         24 hours ago   Exited (0) 24 hours ago                                                                                 magical_visvesvaraya
+7b46f2a94149   bdb06a166c3c                  "python main.py"         38 hours ago   Exited (0) 38 hours ago                                                                                 trusting_lederberg
+f0679fa6c43f   515ccbf7619f                  "python main.py"         41 hours ago   Exited (1) 41 hours ago         
+
+
+### First clean up the existing setup
+
+docker ps -a | grep main.py | awk ‘{print $1}’ | xargs docker rm
+
+
+This will grep out main.py from the docker ps -a and then feed in the instance id into the docker rm command to remove all of the exited instances
+
+
+### pipeline cleanup:
+
+Next, modify the backup-checker .gitlab-ci.yml file with the change below adding the rm flag to the docker command in the push stage:
+
+#add the --rm flag to the docker run command in the script section below so that the old docker ps -a 
+#exited containers do not build up on the VPS 
+deploy:
+  stage: deploy
+  before_script:
+.........
+
+  script:
+    - docker run --rm --env-file .env $CI_REGISTRY_IMAGE:latest
+
+
+This will remove the exited containers immediately after the pipeline runs.
+
+### Next in docker/tasks/main.yml
+
+#Integrate a docker system prune into the cronjob crontab -l so that it is run every 24 hours. #The first cleanup will be very large
+- include_tasks: prune.yml
+
+
+### prune.yml file:
+This will be added to the crontab
+
+
+- name: add docker prune to crontab
+  ansible.builtin.cron:
+    name: docker prune
+    minute: "30"
+    hour: "5"
+    user: root
+    job: "docker system prune --all --force > /dev/null 2>&1"
+#this will be run after all of the other cronjobs
+
+Move this to an hour after the last backup is performed.
+
+This is a complete docker system prune.
+
+crontab is now added. See below at the bottom
+
+[root@vps ~]# crontab -l
+#Ansible: mariadb dump all databases
+01 3 * * * /root/scripts/mariadb-dump-all-databases.sh > /dev/null 2>&1
+#Ansible: lxc mail.linode.cloudnetworktesting.com backup
+01 1 * * * /root/scripts/lxc-backup-mail-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: lxc zulip.linode.cloudnetworktesting.com backup
+11 1 * * * /root/scripts/lxc-backup-zulip-linode-cloudnetworktesting-com.sh > /dev/null 2>&1
+#Ansible: backup nextcloud
+06 2 * * * /root/services/nextcloud/backup.sh > /dev/null 2>&1
+#Ansible: nextcloud background jobs
+*/5 * * * * docker exec --user www-data nextcloud.linode.cloudnetworktesting.com php cron.php
+#Ansible: borgmatic backup
+01 5 * * * /usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1
+#Ansible: backup-and-upgrade pi-hole edit
+01 2 * * * /root/services/pi-hole/backup-and-upgrade.sh > /dev/null 2>&1
+#Ansible: backup and upgrade checkmk
+11 2 * * * /root/services/checkmk/backup-and-upgrade.sh > /dev/null 2>&1
+#Ansible: backup-and-upgrade gitlab
+16 2 * * * /root/services/gitlab/backup-and-upgrade.sh > /dev/null 2>&1
+#Ansible: docker prune
+30 5 * * * docker system prune --all --force > /dev/null 2>&1
+
+
+
+
+
+
+
 
 
 
