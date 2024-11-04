@@ -1,0 +1,32 @@
+#- name: setup the EKS Cluster and additional extensions of the cluster infrastructure
+      #include_tasks: "{{ item }}"
+      #loop:
+        #- ./tasks/cluster3.yaml
+        #- ./tasks/eks-cluster.task.yaml
+        #- ./tasks/eks-storage-provider-ebscsi.task.yaml
+        #- ./tasks/eks-storage-provider-efscsi.task.yaml
+        #- ./tasks/eks-container-insights.task.yaml
+        #- ./tasks/eks-cluster-autoscaler.task.yaml
+        #- ./tasks/eks-loadbalancer-controller.task.yaml
+        #- ./tasks/eks-external-dns.task.yaml
+        #- ./tasks/eks-metrics-server.task.yaml
+        #- ./tasks/eks-xray.task.yaml
+        #- ./tasks/acm.task.yaml
+        #
+
+- name: Run a script with arguments (using 'cmd' parameter)
+  ansible.builtin.script:
+    #cmd: /some/local/script.sh --some-argument 1234
+    cmd: ./tasks/eksctl.sh
+    
+    #
+    #
+    #
+#- name: Run a script with arguments (using 'cmd' parameter)
+  #ansible.builtin.script:
+  #tasks:
+    #cmd: /some/local/script.sh --some-argument 1234
+    #- cmd: ./tasks/eksctl.sh
+      #register: results
+
+   #- debug: var=results.stdout_lines

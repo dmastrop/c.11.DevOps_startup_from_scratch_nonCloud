@@ -1,2 +1,4 @@
+localhost ansible_connection=local
+
 [main]
 linode.cloudnetworktesting.com

@@ -14,4 +14,7 @@
     #- nextcloud
     #- checkmk
     #- borg
-    - gitlab
+    #- gitlab
+- hosts: localhost
+  roles:
+    - eksctl 
