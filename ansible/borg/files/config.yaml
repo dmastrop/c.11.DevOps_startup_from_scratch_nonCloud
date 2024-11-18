@@ -295,7 +295,9 @@ retention:
     # keep_hourly: 24
 
     # Number of daily archives to keep.
-    keep_daily: 3
+    # Need to reduce this as borg is filling up the /mnt/storage
+    #keep_daily: 3
+    keep_daily: 1
 
     # Number of weekly archives to keep.
     keep_weekly: 1

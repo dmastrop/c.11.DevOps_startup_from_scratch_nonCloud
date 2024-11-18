@@ -1,0 +1,20 @@
+- hosts: main
+  roles:
+    #- hostname
+    #- essentials
+    #- security
+    #- sysctl
+    #- certbot
+    #- wireguard
+    #- docker
+    #- mariadb
+    #- lxc
+    #- traefik
+    #- pi-hole
+    #- nextcloud
+    #- checkmk
+    - borg
+    #- gitlab
+#- hosts: localhost
+  #roles:
+   #- eksctl 

@@ -30,8 +30,8 @@ if [[ $? -eq 0 ]]; then
     last_backup=$(ls -t ${mounted_backups_directory} | head -1)
     mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
 
-    find ${backups_directory_app} -mtime +1 -delete
-    find ${backups_directory_secrets} -mtime +1 -delete
+    find ${backups_directory_app} -mtime +0 -delete
+    find ${backups_directory_secrets} -mtime +0 -delete
 else
     status="fail!"
 fi

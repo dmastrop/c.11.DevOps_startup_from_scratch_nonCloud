@@ -61,7 +61,7 @@
 - name: add borgmatic backup to crontab
   ansible.builtin.cron:
     name: borgmatic backup
-    minute: "01"
-    hour: "5"
+    minute: "16"
+    hour: "3"
     user: root
     job: "/usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1"
