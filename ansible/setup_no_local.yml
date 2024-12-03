@@ -13,8 +13,8 @@
     #- pi-hole
     #- nextcloud
     #- checkmk
-    - borg
-    #- gitlab
+    #- borg
+    - gitlab
 #- hosts: localhost
   #roles:
    #- eksctl 
