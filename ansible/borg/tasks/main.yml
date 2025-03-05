@@ -58,10 +58,20 @@
     group: root
     mode: '600'
 
+
+#- name: add borgmatic backup to crontab   <<<< comment out this
+#  ansible.builtin.cron:
+#    name: borgmatic backup
+#    minute: "16"
+#    hour: "3"
+#    user: root
+#    job: "/usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1" 
+
 - name: add borgmatic backup to crontab
   ansible.builtin.cron:
     name: borgmatic backup
-    minute: "16"
-    hour: "3"
-    user: root
-    job: "/usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1"
+    state: absent
+#    minute: "16"
+#    hour: "3"
+#    user: root
+#    job: "/usr/bin/borgmatic --syslog-verbosity 1 > /dev/null 2>&1"
