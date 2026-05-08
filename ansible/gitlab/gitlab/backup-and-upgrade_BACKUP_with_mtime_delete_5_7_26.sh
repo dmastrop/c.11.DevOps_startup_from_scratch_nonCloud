@@ -21,7 +21,7 @@ start_time=$(date +"%T")
 # add the upgrade to this script
 docker pull ${docker_image}:${docker_image_tag}
 docker exec -t "${container_name}" gitlab-backup create && \
-docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "${script_dir}" && docker-compose down && docker-compose up -d 
+docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "{script_dir}" && docker-compose down && docker-compose up -d 
 end_time=$(date +"%T")
 
 if [[ $? -eq 0 ]]; then
@@ -30,18 +30,8 @@ if [[ $? -eq 0 ]]; then
     last_backup=$(ls -t ${mounted_backups_directory} | head -1)
     mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
 
-
-    # Keep exactly 2 newest app backups
-    ls -1t "${backups_directory_app}"/*.tar | tail -n +3 | xargs -r rm --
-
-    # Keep exactly 2 newest secrets backups
-    ls -1t "${backups_directory_secrets}"/*.tar | tail -n +3 | xargs -r rm --
- 
-    # Get rid of mtime method of deleteing these EXTERNAL gitlab backups. The above will just retain 2 copies no matter what
-    # timing. The mtime +1 was retaining 3 files for a short period of time between backup and clearance resulting in 
-    # volume /mnt/storage filling up. The above will resolve this issue. 
-    #find ${backups_directory_app} -mtime +1 -delete
-    #find ${backups_directory_secrets} -mtime +1 -delete
+    find ${backups_directory_app} -mtime +1 -delete
+    find ${backups_directory_secrets} -mtime +1 -delete
 else
     status="fail!"
 fi
