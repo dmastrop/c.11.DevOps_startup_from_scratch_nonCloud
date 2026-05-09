@@ -32,16 +32,28 @@ if [[ $? -eq 0 ]]; then
 
 
     # Keep exactly 2 newest app backups
-    ls -1t "${backups_directory_app}"/*.tar | tail -n +3 | xargs -r rm --
+    #ls -1t "${backups_directory_app}"/*.tar | tail -n +3 | xargs -r rm --
 
     # Keep exactly 2 newest secrets backups
-    ls -1t "${backups_directory_secrets}"/*.tar | tail -n +3 | xargs -r rm --
- 
+    #ls -1t "${backups_directory_secrets}"/*.tar | tail -n +3 | xargs -r rm --
+
+
+    # Keep exactly 1 newest app backup
+    ls -1t "${backups_directory_app}"/*.tar | tail -n +2 | xargs -r rm --
+
+    # Keep exactly 1 newest secrets backup
+    ls -1t "${backups_directory_secrets}"/*.tar | tail -n +2 | xargs -r rm --
+
+
+
+
     # Get rid of mtime method of deleteing these EXTERNAL gitlab backups. The above will just retain 2 copies no matter what
     # timing. The mtime +1 was retaining 3 files for a short period of time between backup and clearance resulting in 
     # volume /mnt/storage filling up. The above will resolve this issue. 
+   
     #find ${backups_directory_app} -mtime +1 -delete
     #find ${backups_directory_secrets} -mtime +1 -delete
+
 else
     status="fail!"
 fi
