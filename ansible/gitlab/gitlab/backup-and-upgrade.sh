@@ -27,8 +27,8 @@ end_time=$(date +"%T")
 if [[ $? -eq 0 ]]; then
     status="success"
 
-    last_backup=$(ls -t ${mounted_backups_directory} | head -1)
-    mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
+    #last_backup=$(ls -t ${mounted_backups_directory} | head -1)
+    #mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
 
 
     # Keep exactly 2 newest app backups
@@ -44,7 +44,9 @@ if [[ $? -eq 0 ]]; then
     # Keep exactly 1 newest secrets backup
     ls -1t "${backups_directory_secrets}"/*.tar | tail -n +2 | xargs -r rm --
 
-
+    # MOVE this to after the cleanup. Doing the move before the cleanup is leading to volume space congestion and issues.
+    last_backup=$(ls -t ${mounted_backups_directory} | head -1)
+    mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
 
 
     # Get rid of mtime method of deleteing these EXTERNAL gitlab backups. The above will just retain 2 copies no matter what
