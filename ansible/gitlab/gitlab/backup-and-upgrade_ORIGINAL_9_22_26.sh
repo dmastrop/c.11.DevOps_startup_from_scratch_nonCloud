@@ -27,8 +27,8 @@ end_time=$(date +"%T")
 if [[ $? -eq 0 ]]; then
     status="success"
 
-    #last_backup=$(ls -t ${mounted_backups_directory} | head -1)
-    #mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
+    last_backup=$(ls -t ${mounted_backups_directory} | head -1)
+    mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
 
 
     # Keep exactly 2 newest app backups
@@ -38,21 +38,14 @@ if [[ $? -eq 0 ]]; then
     #ls -1t "${backups_directory_secrets}"/*.tar | tail -n +3 | xargs -r rm --
 
 
-    # CLEAN ONLY APP BACKUPS BEFORE MOVE This is to prevent the /mnt/storage overlfow issue with the app tarball backup.....
-    rm -f "${backups_directory_app}"/*.tar
-
-    # DO NOT CLEAN SECRETS BEFORE MOVE
-    # Secrets are created directly in their final directory by gitlab-ctl backup-etc
-
-    # MOVE NEWEST APP BACKUP
-    last_backup=$(ls -1t "${mounted_backups_directory}"/*.tar | head -1)
-    mv "${mounted_backups_directory}/${last_backup}" "${backups_directory_app}"
-
-    # RETAIN ONLY 1 APP BACKUP AFTER MOVE
+    # Keep exactly 1 newest app backup
     ls -1t "${backups_directory_app}"/*.tar | tail -n +2 | xargs -r rm --
 
-    # RETAIN ONLY 1 SECRETS BACKUP AFTER MOVE
+    # Keep exactly 1 newest secrets backup
     ls -1t "${backups_directory_secrets}"/*.tar | tail -n +2 | xargs -r rm --
+
+
+
 
     # Get rid of mtime method of deleteing these EXTERNAL gitlab backups. The above will just retain 2 copies no matter what
     # timing. The mtime +1 was retaining 3 files for a short period of time between backup and clearance resulting in 
@@ -66,3 +59,4 @@ else
 fi
 
 write_results_to_db "${date}" "${target}" "${start_time}" "${end_time}" "${status}"
+
