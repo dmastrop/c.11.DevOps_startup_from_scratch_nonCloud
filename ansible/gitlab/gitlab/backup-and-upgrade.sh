@@ -20,8 +20,21 @@ start_time=$(date +"%T")
 
 # add the upgrade to this script
 docker pull ${docker_image}:${docker_image_tag}
-docker exec -t "${container_name}" gitlab-backup create && \
-docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "${script_dir}" && docker-compose down && docker-compose up -d 
+
+# the concatenated command is having issues. The backup gives exit code of 1 even though it works fine and thus the secrets backup
+# and docker compose segments in the command are not running. De-segment this to separate command (see further below)
+
+#docker exec -t "${container_name}" gitlab-backup create && \
+#docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "${script_dir}" && docker-compose down && docker-compose up -d 
+
+# De-segment the commands for better error tolerance:
+docker exec -t "${container_name}" gitlab-backup create
+docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/
+cd "${script_dir}"
+docker-compose down
+docker-compose up -d
+
+
 end_time=$(date +"%T")
 
 if [[ $? -eq 0 ]]; then
@@ -29,6 +42,7 @@ if [[ $? -eq 0 ]]; then
 
     #last_backup=$(ls -t ${mounted_backups_directory} | head -1)
     #mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
+
 
 
     # Keep exactly 2 newest app backups
@@ -44,10 +58,10 @@ if [[ $? -eq 0 ]]; then
     # DO NOT CLEAN SECRETS BEFORE MOVE
     # Secrets are created directly in their final directory by gitlab-ctl backup-etc
 
-    # MOVE NEWEST APP BACKUP
-    last_backup=$(ls -1t "${mounted_backups_directory}"/*.tar | head -1)
-    mv "${mounted_backups_directory}/${last_backup}" "${backups_directory_app}"
-
+    # MOVE NEWEST APP BACKUP  revert to original version
+    last_backup=$(ls -t ${mounted_backups_directory} | head -1)
+    mv ${mounted_backups_directory}/"${last_backup}" ${backups_directory_app}
+    
     # RETAIN ONLY 1 APP BACKUP AFTER MOVE
     ls -1t "${backups_directory_app}"/*.tar | tail -n +2 | xargs -r rm --
 
