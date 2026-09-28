@@ -28,7 +28,7 @@ docker pull ${docker_image}:${docker_image_tag}
 #docker exec -t "${container_name}" gitlab-ctl backup-etc --backup-path /secret/gitlab/backups/ && cd "${script_dir}" && docker-compose down && docker-compose up -d 
 
 # De-segment the commands for better error tolerance:
-docker exec -t gitlab.linode.cloudnetworktesting.com gitlab-backup create SKIP=registry
+docker exec -t "${container_name}" gitlab-backup create SKIP=registry
 # Use the SKIP registry backup command ENV variable. The registry is not required for gitlab backup and it is very very large using up
 # lots of volume space.
 #docker exec -t "${container_name}" gitlab-backup create
